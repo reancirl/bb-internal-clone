@@ -72,6 +72,8 @@ class DatabaseSeeder extends Seeder
             'notes' => 'On-site at Staebler — slab work',
         ]);
 
+        $this->call(DirectorySeeder::class);
+
         $this->command->info('Seeded users:');
         $this->command->info('  '.$admin->email.' (admin) · password: password');
         $this->command->info('  '.$foreman->email.' (crew foreman, currently clocked in) · password: password');

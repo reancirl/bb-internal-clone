@@ -9,7 +9,10 @@ interface ComingSoonProps {
 }
 
 export default function ComingSoon({ title, milestone }: ComingSoonProps) {
-    const breadcrumbs: BreadcrumbItem[] = [{ title: 'Dashboard', href: '/dashboard' }, { title, href: '#' }];
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: 'Dashboard', href: '/dashboard' },
+        { title, href: '#' },
+    ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -20,7 +23,8 @@ export default function ComingSoon({ title, milestone }: ComingSoonProps) {
                 </div>
                 <h1 className="text-foreground text-2xl font-semibold">{title}</h1>
                 <p className="text-muted-foreground max-w-md text-sm">
-                    This module is on the roadmap{milestone ? ` for ${milestone}` : ''}. See <span className="font-medium">docs/05-implementation-plan.md</span> for what ships when.
+                    This module is on the roadmap{milestone ? ` for ${milestone}` : ''}. See <span className="font-medium">docs/PLAN.md</span> for
+                    what ships when.
                 </p>
             </div>
         </AppLayout>
