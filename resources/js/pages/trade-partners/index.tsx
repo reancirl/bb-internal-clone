@@ -201,7 +201,7 @@ export default function TradePartnersIndex({ partners, filters, tradeOptions, lo
                 {/* Table */}
                 <Card className="overflow-hidden">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                        <table className="w-full min-w-[56rem] text-sm">
                             <thead className="bg-muted/50">
                                 <tr className="text-muted-foreground text-left text-xs font-semibold tracking-wider uppercase">
                                     <th className="px-6 py-3">Name</th>

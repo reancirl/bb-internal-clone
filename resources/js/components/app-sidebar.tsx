@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BarChart3, Briefcase, Calendar, Clock, FolderKanban, LayoutGrid, ShieldCheck, Store, Users } from 'lucide-react';
+import { BarChart3, Book, Briefcase, Calendar, Clock, DollarSign, FolderKanban, LayoutGrid, ShieldCheck, Store, Users } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const operationsNav: NavItem[] = [
@@ -21,12 +21,14 @@ const operationsNav: NavItem[] = [
     { title: 'Projects', url: '/projects', icon: FolderKanban },
     { title: 'Calendar', url: '/calendar', icon: Calendar },
     { title: 'Jobs', url: '/jobs', icon: Briefcase },
+    { title: 'Price Book', url: '/price-book', icon: Book },
     { title: 'Trade Partners', url: '/trade-partners', icon: Users },
     { title: 'Vendors', url: '/vendors', icon: Store },
 ];
 
 const adminNav: NavItem[] = [
     { title: 'Admin Dashboard', url: '/admin/dashboard', icon: ShieldCheck },
+    { title: 'Rates', url: '/admin/rates', icon: DollarSign },
     { title: 'Employees', url: '/admin/employees', icon: Users },
     { title: 'Reports', url: '/admin/reports', icon: BarChart3 },
 ];

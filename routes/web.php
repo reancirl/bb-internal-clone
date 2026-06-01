@@ -1,6 +1,10 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\EquipmentRateController;
+use App\Http\Controllers\Admin\LaborRateController;
+use App\Http\Controllers\Admin\RateController;
+use App\Http\Controllers\PriceBookController;
 use App\Http\Controllers\TimeCardController;
 use App\Http\Controllers\TradePartnerController;
 use App\Http\Controllers\VendorController;
@@ -34,6 +38,14 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('vendors/{vendor}', [VendorController::class, 'destroy'])->name('vendors.destroy');
     });
 
+    // M2 — Price Book (everyone can view; admins manage items)
+    Route::get('price-book', [PriceBookController::class, 'index'])->name('price-book.index');
+    Route::middleware('admin')->group(function () {
+        Route::post('price-book', [PriceBookController::class, 'store'])->name('price-book.store');
+        Route::put('price-book/{priceItem}', [PriceBookController::class, 'update'])->name('price-book.update');
+        Route::delete('price-book/{priceItem}', [PriceBookController::class, 'destroy'])->name('price-book.destroy');
+    });
+
     // Stubs — routes for sidebar nav consistency; pages render "Coming soon" placeholders
     // until their milestone is implemented. See docs/PLAN.md
     Route::get('projects', fn () => Inertia::render('coming-soon', ['title' => 'Projects', 'milestone' => 'M3']))->name('projects.index');
@@ -44,7 +56,16 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
-    Route::get('employees', fn () => Inertia::render('coming-soon', ['title' => 'Employees', 'milestone' => 'M2']))->name('employees.index');
+    // M2 — Labor & Equipment rate tables
+    Route::get('rates', [RateController::class, 'index'])->name('rates.index');
+    Route::post('labor-rates', [LaborRateController::class, 'store'])->name('labor-rates.store');
+    Route::put('labor-rates/{laborRate}', [LaborRateController::class, 'update'])->name('labor-rates.update');
+    Route::delete('labor-rates/{laborRate}', [LaborRateController::class, 'destroy'])->name('labor-rates.destroy');
+    Route::post('equipment-rates', [EquipmentRateController::class, 'store'])->name('equipment-rates.store');
+    Route::put('equipment-rates/{equipmentRate}', [EquipmentRateController::class, 'update'])->name('equipment-rates.update');
+    Route::delete('equipment-rates/{equipmentRate}', [EquipmentRateController::class, 'destroy'])->name('equipment-rates.destroy');
+
+    Route::get('employees', fn () => Inertia::render('coming-soon', ['title' => 'Employees', 'milestone' => 'M8']))->name('employees.index');
     Route::get('reports', fn () => Inertia::render('coming-soon', ['title' => 'Reports', 'milestone' => 'M8']))->name('reports.index');
 });
 
