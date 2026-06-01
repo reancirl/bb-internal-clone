@@ -25,9 +25,9 @@ class PriceBookController extends Controller
         $items = PriceItem::query()
             ->with(['category:id,code,name,sort', 'preferredVendor:id,name'])
             ->when($search !== '', fn ($q) => $q->where(fn ($q) => $q
-                ->where('name', 'like', "%{$search}%")
-                ->orWhere('notes', 'like', "%{$search}%")))
-            ->when($categoryId > 0, fn ($q) => $q->where('price_category_id', $categoryId))
+                ->where('price_items.name', 'like', "%{$search}%")
+                ->orWhere('price_items.notes', 'like', "%{$search}%")))
+            ->when($categoryId > 0, fn ($q) => $q->where('price_items.price_category_id', $categoryId))
             ->join('price_categories', 'price_categories.id', '=', 'price_items.price_category_id')
             ->orderBy('price_categories.sort')
             ->orderBy('price_items.name')

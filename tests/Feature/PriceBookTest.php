@@ -41,6 +41,19 @@ class PriceBookTest extends TestCase
                 ->where('items.data.0.name', 'Concrete Slab'));
     }
 
+    public function test_search_with_category_filter_does_not_break_on_join(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $category = PriceCategory::factory()->create();
+        PriceItem::factory()->for($category, 'category')->create(['name' => 'Anchor bolts']);
+        PriceItem::factory()->for($category, 'category')->create(['name' => 'Rebar']);
+
+        $this->actingAs($admin)
+            ->get('/price-book?search=a&category='.$category->id.'&per_page=10')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('items.data.0.name', 'Anchor bolts'));
+    }
+
     public function test_defaults_to_ten_per_page(): void
     {
         $admin = User::factory()->admin()->create();
