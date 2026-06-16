@@ -5,6 +5,8 @@ use App\Http\Controllers\Admin\EquipmentRateController;
 use App\Http\Controllers\Admin\LaborRateController;
 use App\Http\Controllers\Admin\RateController;
 use App\Http\Controllers\PriceBookController;
+use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\TakeoffLineController;
 use App\Http\Controllers\TimeCardController;
 use App\Http\Controllers\TradePartnerController;
 use App\Http\Controllers\VendorController;
@@ -46,9 +48,23 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('price-book/{priceItem}', [PriceBookController::class, 'destroy'])->name('price-book.destroy');
     });
 
+    // M3 — Projects + Takeoff Calculator (everyone views; admins manage; crew toggle ordered/on-site)
+    Route::get('projects', [ProjectController::class, 'index'])->name('projects.index');
+    Route::get('projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
+    Route::patch('takeoff-lines/{takeoffLine}/toggle', [TakeoffLineController::class, 'toggle'])->name('takeoff-lines.toggle');
+
+    Route::middleware('admin')->group(function () {
+        Route::post('projects', [ProjectController::class, 'store'])->name('projects.store');
+        Route::put('projects/{project}', [ProjectController::class, 'update'])->name('projects.update');
+        Route::delete('projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
+
+        Route::post('projects/{project}/lines', [TakeoffLineController::class, 'store'])->name('takeoff-lines.store');
+        Route::put('takeoff-lines/{takeoffLine}', [TakeoffLineController::class, 'update'])->name('takeoff-lines.update');
+        Route::delete('takeoff-lines/{takeoffLine}', [TakeoffLineController::class, 'destroy'])->name('takeoff-lines.destroy');
+    });
+
     // Stubs — routes for sidebar nav consistency; pages render "Coming soon" placeholders
     // until their milestone is implemented. See docs/PLAN.md
-    Route::get('projects', fn () => Inertia::render('coming-soon', ['title' => 'Projects', 'milestone' => 'M3']))->name('projects.index');
     Route::get('calendar', fn () => Inertia::render('coming-soon', ['title' => 'Calendar', 'milestone' => 'M7']))->name('calendar.index');
     Route::get('jobs', fn () => Inertia::render('coming-soon', ['title' => 'Jobs', 'milestone' => 'M7']))->name('jobs.index');
 });

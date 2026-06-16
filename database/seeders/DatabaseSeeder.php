@@ -74,6 +74,7 @@ class DatabaseSeeder extends Seeder
 
         $this->call(DirectorySeeder::class);
         $this->call(PriceBookSeeder::class);
+        $this->call(ProjectSeeder::class);
 
         $this->command->info('Seeded users:');
         $this->command->info('  '.$admin->email.' (admin) · password: password');
