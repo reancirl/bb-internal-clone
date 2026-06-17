@@ -25,7 +25,7 @@ npm-debug.log
 yarn-error.log
 
 # Project-specific exclusions
-# docs/ markdown is tracked, but never commit the master pricing spreadsheet
-# (proprietary pricing + client data; this repo is public).
-/docs/**/*.xlsx
+# docs/ holds sensitive internal info (pricing, client data, infra/deploy
+# details); this repo is public, so the whole folder stays local-only.
+/docs
 image.png
