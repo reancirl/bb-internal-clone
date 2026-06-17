@@ -290,11 +290,12 @@ export default function TradePartnersIndex({ partners, filters, tradeOptions, lo
 
             {/* Create / Edit dialog */}
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-                    <DialogHeader>
+                <DialogContent className="flex max-h-[90vh] flex-col sm:max-w-2xl">
+                    <DialogHeader className="shrink-0">
                         <DialogTitle>{editing ? 'Edit trade partner' : 'Add trade partner'}</DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={submit} className="space-y-4">
+                    <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col gap-4">
+                        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-1">
                         <div className="grid gap-4 sm:grid-cols-2">
                             <div className="space-y-1.5 sm:col-span-2">
                                 <Label htmlFor="f-name">Name</Label>
@@ -365,8 +366,9 @@ export default function TradePartnersIndex({ partners, filters, tradeOptions, lo
                                 Do not use
                             </label>
                         </div>
+                        </div>
 
-                        <DialogFooter>
+                        <DialogFooter className="shrink-0">
                             <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                                 Cancel
                             </Button>

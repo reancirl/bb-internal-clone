@@ -256,6 +256,7 @@ export default function RatesPage({ laborRates, equipmentRates }: PageProps) {
                                 <Input
                                     id="l-base"
                                     type="number"
+                                    min="0"
                                     step="0.01"
                                     value={laborForm.data.base_rate}
                                     onChange={(e) => laborForm.setData('base_rate', e.target.value)}
@@ -267,6 +268,7 @@ export default function RatesPage({ laborRates, equipmentRates }: PageProps) {
                                 <Input
                                     id="l-burden"
                                     type="number"
+                                    min="0"
                                     step="0.01"
                                     value={laborForm.data.burden_rate}
                                     onChange={(e) => laborForm.setData('burden_rate', e.target.value)}
@@ -278,6 +280,7 @@ export default function RatesPage({ laborRates, equipmentRates }: PageProps) {
                                 <Input
                                     id="l-bill"
                                     type="number"
+                                    min="0"
                                     step="0.01"
                                     value={laborForm.data.bill_rate}
                                     onChange={(e) => laborForm.setData('bill_rate', e.target.value)}
@@ -289,6 +292,7 @@ export default function RatesPage({ laborRates, equipmentRates }: PageProps) {
                                 <Input
                                     id="l-total"
                                     type="number"
+                                    min="0"
                                     step="0.01"
                                     value={laborForm.data.total}
                                     onChange={(e) => laborForm.setData('total', e.target.value)}
@@ -331,6 +335,7 @@ export default function RatesPage({ laborRates, equipmentRates }: PageProps) {
                                 <Input
                                     id="e-day"
                                     type="number"
+                                    min="0"
                                     step="0.01"
                                     value={equipForm.data.day_rate}
                                     onChange={(e) => equipForm.setData('day_rate', e.target.value)}
@@ -342,6 +347,7 @@ export default function RatesPage({ laborRates, equipmentRates }: PageProps) {
                                 <Input
                                     id="e-week"
                                     type="number"
+                                    min="0"
                                     step="0.01"
                                     value={equipForm.data.week_rate}
                                     onChange={(e) => equipForm.setData('week_rate', e.target.value)}
@@ -353,6 +359,7 @@ export default function RatesPage({ laborRates, equipmentRates }: PageProps) {
                                 <Input
                                     id="e-month"
                                     type="number"
+                                    min="0"
                                     step="0.01"
                                     value={equipForm.data.month_rate}
                                     onChange={(e) => equipForm.setData('month_rate', e.target.value)}

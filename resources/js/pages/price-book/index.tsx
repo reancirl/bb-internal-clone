@@ -236,11 +236,12 @@ export default function PriceBookIndex({ items, filters, categories, vendors, un
             </div>
 
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-                    <DialogHeader>
+                <DialogContent className="flex max-h-[90vh] flex-col sm:max-w-2xl">
+                    <DialogHeader className="shrink-0">
                         <DialogTitle>{editing ? 'Edit item' : 'Add item'}</DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={submit} className="space-y-4">
+                    <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col gap-4">
+                        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-1">
                         <div className="grid gap-4 sm:grid-cols-2">
                             <div className="space-y-1.5">
                                 <Label htmlFor="i-category">Category</Label>
@@ -285,6 +286,7 @@ export default function PriceBookIndex({ items, filters, categories, vendors, un
                                 <Input
                                     id="i-fast"
                                     type="number"
+                                    min="0"
                                     step="0.01"
                                     value={form.data.fast_price}
                                     onChange={(e) => form.setData('fast_price', e.target.value)}
@@ -296,6 +298,7 @@ export default function PriceBookIndex({ items, filters, categories, vendors, un
                                 <Input
                                     id="i-material"
                                     type="number"
+                                    min="0"
                                     step="0.01"
                                     value={form.data.material_cost}
                                     onChange={(e) => form.setData('material_cost', e.target.value)}
@@ -307,6 +310,7 @@ export default function PriceBookIndex({ items, filters, categories, vendors, un
                                 <Input
                                     id="i-bb"
                                     type="number"
+                                    min="0"
                                     step="0.01"
                                     value={form.data.bb_install_rate}
                                     onChange={(e) => form.setData('bb_install_rate', e.target.value)}
@@ -318,6 +322,7 @@ export default function PriceBookIndex({ items, filters, categories, vendors, un
                                 <Input
                                     id="i-sub"
                                     type="number"
+                                    min="0"
                                     step="0.01"
                                     value={form.data.sub_install_rate}
                                     onChange={(e) => form.setData('sub_install_rate', e.target.value)}
@@ -347,7 +352,8 @@ export default function PriceBookIndex({ items, filters, categories, vendors, un
                             <Textarea id="i-notes" value={form.data.notes} onChange={(e) => form.setData('notes', e.target.value)} />
                             <InputError message={form.errors.notes} />
                         </div>
-                        <DialogFooter>
+                        </div>
+                        <DialogFooter className="shrink-0">
                             <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                                 Cancel
                             </Button>
