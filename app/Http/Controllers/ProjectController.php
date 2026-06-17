@@ -55,7 +55,7 @@ class ProjectController extends Controller
 
     public function show(Request $request, Project $project): Response
     {
-        $project->load(['takeoffLines.supplier:id,name', 'takeoffLines.priceItem:id,fast_price']);
+        $project->load(['takeoffLines.supplier:id,name', 'takeoffLines.priceItem:id,fast_price,material_cost']);
         $evaluator = new FormulaEvaluator;
         $dimensions = $project->dimensionValues();
 
@@ -118,7 +118,7 @@ class ProjectController extends Controller
      */
     public function export(Project $project): StreamedResponse
     {
-        $project->load(['takeoffLines.supplier:id,name', 'takeoffLines.priceItem:id,fast_price']);
+        $project->load(['takeoffLines.supplier:id,name', 'takeoffLines.priceItem:id,fast_price,material_cost']);
         $evaluator = new FormulaEvaluator;
         $dimensions = $project->dimensionValues();
         $filename = Str::slug($project->name).'-takeoff.csv';
@@ -176,7 +176,11 @@ class ProjectController extends Controller
 
         $waste = (float) $line->waste_pct;
         $qty = $base === null ? null : round($base * (1 + $waste / 100), 2);
-        $unitPrice = $line->priceItem?->fast_price !== null ? (float) $line->priceItem->fast_price : null;
+
+        // Use the best unit price we have on file: the quoted "fast price",
+        // falling back to material cost when no fast price is set.
+        $rawPrice = $line->priceItem?->fast_price ?? $line->priceItem?->material_cost;
+        $unitPrice = $rawPrice !== null ? (float) $rawPrice : null;
         $cost = ($qty === null || $unitPrice === null) ? null : round($qty * $unitPrice, 2);
 
         return [

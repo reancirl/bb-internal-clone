@@ -190,6 +190,28 @@ class ProjectTest extends TestCase
                 ->where('summary.categories.0.total', 200));
     }
 
+    public function test_cost_falls_back_to_material_cost_when_no_fast_price(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $project = Project::factory()->create(['ext_wall_lft' => 10]);
+        $item = PriceItem::factory()
+            ->for(PriceCategory::factory(), 'category')
+            ->create(['fast_price' => null, 'material_cost' => 5]);
+
+        // No fast price → unit price = material_cost (5); qty 10 → cost 50.
+        TakeoffLine::factory()->for($project)->create([
+            'price_item_id' => $item->id,
+            'formula' => 'ext_wall_lft',
+            'waste_pct' => 0,
+        ]);
+
+        $this->actingAs($admin)->get('/projects/'.$project->id)
+            ->assertInertia(fn ($page) => $page
+                ->where('lines.0.unit_price', 5)
+                ->where('lines.0.line_cost', 50)
+                ->where('summary.grand_total', 50));
+    }
+
     public function test_line_without_a_price_is_flagged_unpriced_and_excluded_from_total(): void
     {
         $admin = User::factory()->admin()->create();

@@ -38,7 +38,7 @@ class DirectorySeeder extends Seeder
         ];
 
         foreach ($vendors as $v) {
-            Vendor::create($v);
+            Vendor::firstOrCreate(['name' => $v['name']], $v);
         }
     }
 
@@ -75,20 +75,22 @@ class DirectorySeeder extends Seeder
         ];
 
         foreach ($partners as [$name, $trades, $location, $phone, $email, $used, $dnu, $referral, $price, $notes]) {
-            $partner = TradePartner::create([
-                'name' => $name,
-                'location' => $location,
-                'phone' => $phone,
-                'email' => $email,
-                'used_before' => $used,
-                'negotiated_price' => $price,
-                'referral_source' => $referral,
-                'notes' => $notes,
-                'do_not_use' => $dnu,
-            ]);
+            $partner = TradePartner::firstOrCreate(
+                ['name' => $name],
+                [
+                    'location' => $location,
+                    'phone' => $phone,
+                    'email' => $email,
+                    'used_before' => $used,
+                    'negotiated_price' => $price,
+                    'referral_source' => $referral,
+                    'notes' => $notes,
+                    'do_not_use' => $dnu,
+                ],
+            );
 
             foreach (array_unique($trades) as $trade) {
-                $partner->trades()->create(['trade' => $trade]);
+                $partner->trades()->firstOrCreate(['trade' => $trade]);
             }
         }
     }

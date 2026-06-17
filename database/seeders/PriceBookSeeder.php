@@ -49,7 +49,7 @@ class PriceBookSeeder extends Seeder
 
         $sort = 1;
         foreach ($categories as $code => $name) {
-            PriceCategory::create(['code' => $code, 'name' => $name, 'sort' => $sort++]);
+            PriceCategory::firstOrCreate(['code' => $code], ['name' => $name, 'sort' => $sort++]);
         }
     }
 
@@ -83,17 +83,18 @@ class PriceBookSeeder extends Seeder
         ];
 
         foreach ($items as [$code, $name, $unit, $fast, $material, $bb, $sub, $vendorName, $notes]) {
-            PriceItem::create([
-                'price_category_id' => $cat[$code],
-                'name' => $name,
-                'unit' => $unit,
-                'fast_price' => $fast,
-                'material_cost' => $material,
-                'bb_install_rate' => $bb,
-                'sub_install_rate' => $sub,
-                'preferred_vendor_id' => $vendorName ? ($vendor[$vendorName] ?? null) : null,
-                'notes' => $notes,
-            ]);
+            PriceItem::firstOrCreate(
+                ['price_category_id' => $cat[$code], 'name' => $name],
+                [
+                    'unit' => $unit,
+                    'fast_price' => $fast,
+                    'material_cost' => $material,
+                    'bb_install_rate' => $bb,
+                    'sub_install_rate' => $sub,
+                    'preferred_vendor_id' => $vendorName ? ($vendor[$vendorName] ?? null) : null,
+                    'notes' => $notes,
+                ],
+            );
         }
     }
 
@@ -111,13 +112,15 @@ class PriceBookSeeder extends Seeder
         ];
 
         foreach ($rates as [$class, $base, $burden, $bill, $total]) {
-            LaborRate::create([
-                'class_name' => $class,
-                'base_rate' => $base,
-                'burden_rate' => $burden,
-                'bill_rate' => $bill,
-                'total' => $total,
-            ]);
+            LaborRate::firstOrCreate(
+                ['class_name' => $class],
+                [
+                    'base_rate' => $base,
+                    'burden_rate' => $burden,
+                    'bill_rate' => $bill,
+                    'total' => $total,
+                ],
+            );
         }
     }
 
@@ -138,13 +141,15 @@ class PriceBookSeeder extends Seeder
         ];
 
         foreach ($equipment as [$name, $day, $week, $month, $notes]) {
-            EquipmentRate::create([
-                'name' => $name,
-                'day_rate' => $day,
-                'week_rate' => $week,
-                'month_rate' => $month,
-                'notes' => $notes,
-            ]);
+            EquipmentRate::firstOrCreate(
+                ['name' => $name],
+                [
+                    'day_rate' => $day,
+                    'week_rate' => $week,
+                    'month_rate' => $month,
+                    'notes' => $notes,
+                ],
+            );
         }
     }
 }
