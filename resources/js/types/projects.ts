@@ -45,6 +45,8 @@ export interface TakeoffLineRow {
     base_qty: number | null;
     computed_qty: number | null;
     formula_error: string | null;
+    unit_price: number | null;
+    line_cost: number | null;
     supplier_id: number | null;
     supplier_name: string | null;
     ordered: boolean;
@@ -52,9 +54,26 @@ export interface TakeoffLineRow {
     notes: string | null;
 }
 
+export interface CategoryTotal {
+    category: string;
+    total: number;
+}
+
+export interface ProjectCostSummary {
+    categories: CategoryTotal[];
+    grand_total: number;
+    priced_count: number;
+    unpriced_count: number;
+}
+
 export function formatQty(value: number | null): string {
     if (value === null) return '—';
     return value.toLocaleString('en-US', { maximumFractionDigits: 2 });
+}
+
+export function formatMoney(value: number | null): string {
+    if (value === null) return '—';
+    return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 }
 
 export const STATUS_VARIANT: Record<ProjectStatus, 'secondary' | 'default' | 'outline'> = {

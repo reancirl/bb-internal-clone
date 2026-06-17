@@ -50,6 +50,7 @@ Route::middleware(['auth'])->group(function () {
 
     // M3 — Projects + Takeoff Calculator (everyone views; admins manage; crew toggle ordered/on-site)
     Route::get('projects', [ProjectController::class, 'index'])->name('projects.index');
+    Route::get('projects/{project}/export', [ProjectController::class, 'export'])->name('projects.export');
     Route::get('projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
     Route::patch('takeoff-lines/{takeoffLine}/toggle', [TakeoffLineController::class, 'toggle'])->name('takeoff-lines.toggle');
 

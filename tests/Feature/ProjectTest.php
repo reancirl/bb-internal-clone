@@ -162,4 +162,72 @@ class ProjectTest extends TestCase
         $this->actingAs($admin)->delete('/takeoff-lines/'.$line->id)->assertRedirect();
         $this->assertDatabaseMissing('takeoff_lines', ['id' => $line->id]);
     }
+
+    public function test_line_cost_and_estimate_total_are_computed_from_linked_price(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $project = Project::factory()->create(['ext_wall_lft' => 20]);
+        $item = PriceItem::factory()
+            ->for(PriceCategory::factory(), 'category')
+            ->create(['fast_price' => 10]);
+
+        // qty = ext_wall_lft = 20 (no waste); cost = 20 * 10.00 = 200.00
+        TakeoffLine::factory()->for($project)->create([
+            'category' => 'FRAMING',
+            'price_item_id' => $item->id,
+            'formula' => 'ext_wall_lft',
+            'waste_pct' => 0,
+        ]);
+
+        $this->actingAs($admin)->get('/projects/'.$project->id)
+            ->assertInertia(fn ($page) => $page
+                ->where('lines.0.unit_price', 10)
+                ->where('lines.0.line_cost', 200)
+                ->where('summary.grand_total', 200)
+                ->where('summary.priced_count', 1)
+                ->where('summary.unpriced_count', 0)
+                ->where('summary.categories.0.category', 'FRAMING')
+                ->where('summary.categories.0.total', 200));
+    }
+
+    public function test_line_without_a_price_is_flagged_unpriced_and_excluded_from_total(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $project = Project::factory()->create(['ext_wall_lft' => 50]);
+        TakeoffLine::factory()->for($project)->create([
+            'price_item_id' => null,
+            'formula' => 'ext_wall_lft',
+            'waste_pct' => 0,
+        ]);
+
+        $this->actingAs($admin)->get('/projects/'.$project->id)
+            ->assertInertia(fn ($page) => $page
+                ->where('lines.0.line_cost', null)
+                ->where('summary.grand_total', 0)
+                ->where('summary.priced_count', 0)
+                ->where('summary.unpriced_count', 1));
+    }
+
+    public function test_takeoff_can_be_exported_as_csv(): void
+    {
+        $crew = User::factory()->create(['role' => User::ROLE_CREW]);
+        $project = Project::factory()->create(['name' => 'Staebler Residence', 'ext_wall_lft' => 20]);
+        $item = PriceItem::factory()->for(PriceCategory::factory(), 'category')->create(['fast_price' => 10]);
+        TakeoffLine::factory()->for($project)->create([
+            'item' => 'Wall studs',
+            'price_item_id' => $item->id,
+            'formula' => 'ext_wall_lft',
+            'waste_pct' => 0,
+        ]);
+
+        $response = $this->actingAs($crew)->get('/projects/'.$project->id.'/export');
+
+        $response->assertOk();
+        $response->assertDownload('staebler-residence-takeoff.csv');
+
+        $csv = $response->streamedContent();
+        $this->assertStringContainsString('Wall studs', $csv);
+        $this->assertStringContainsString('200', $csv);   // line cost
+        $this->assertStringContainsString('TOTAL', $csv);
+    }
 }

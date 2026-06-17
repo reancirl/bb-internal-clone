@@ -15,21 +15,24 @@ import { type BreadcrumbItem } from '@/types';
 import { type VendorOption } from '@/types/pricing';
 import {
     type DimensionField,
+    formatMoney,
     formatQty,
     type PriceItemOption,
+    type ProjectCostSummary,
     type ProjectDetail,
     type ProjectStatus,
     STATUS_VARIANT,
     type TakeoffLineRow,
 } from '@/types/projects';
 import { Head, router, useForm } from '@inertiajs/react';
-import { AlertTriangle, Pencil, Plus, Trash2 } from 'lucide-react';
+import { AlertTriangle, Download, Pencil, Plus, Trash2 } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
 interface PageProps {
     project: ProjectDetail;
     dimensionFields: DimensionField[];
     lines: TakeoffLineRow[];
+    summary: ProjectCostSummary;
     vendors: VendorOption[];
     priceItems: PriceItemOption[];
     statuses: ProjectStatus[];
@@ -51,7 +54,7 @@ type LineForm = {
 
 const emptyLine: LineForm = { price_item_id: NONE, category: '', item: '', formula: '', unit: '', waste_pct: '0', supplier_id: NONE, notes: '' };
 
-export default function ProjectShow({ project, dimensionFields, lines, vendors, priceItems, statuses, isAdmin }: PageProps) {
+export default function ProjectShow({ project, dimensionFields, lines, summary, vendors, priceItems, statuses, isAdmin }: PageProps) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Projects', href: '/projects' },
         { title: project.name, href: route('projects.show', project.id) },
@@ -249,6 +252,12 @@ export default function ProjectShow({ project, dimensionFields, lines, vendors, 
                             <span className="text-muted-foreground text-xs tabular-nums">
                                 Ordered {orderedCount}/{lines.length} · On site {onSiteCount}/{lines.length}
                             </span>
+                            <Button asChild size="sm" variant="outline" className="gap-2">
+                                <a href={route('projects.export', project.id)}>
+                                    <Download className="h-4 w-4" />
+                                    Export CSV
+                                </a>
+                            </Button>
                             {isAdmin && (
                                 <Button size="sm" className="gap-2" onClick={openCreateLine}>
                                     <Plus className="h-4 w-4" />
@@ -267,6 +276,7 @@ export default function ProjectShow({ project, dimensionFields, lines, vendors, 
                                         <th className="px-4 py-3 text-right">Qty</th>
                                         <th className="px-4 py-3">Unit</th>
                                         <th className="px-4 py-3 text-right">Waste</th>
+                                        <th className="px-4 py-3 text-right">Est. cost</th>
                                         <th className="px-4 py-3">Supplier</th>
                                         <th className="px-4 py-3 text-center">Ordered</th>
                                         <th className="px-4 py-3 text-center">On site</th>
@@ -276,7 +286,7 @@ export default function ProjectShow({ project, dimensionFields, lines, vendors, 
                                 <tbody className="divide-border divide-y">
                                     {lines.length === 0 ? (
                                         <tr>
-                                            <td colSpan={isAdmin ? 9 : 8} className="text-muted-foreground px-4 py-10 text-center">
+                                            <td colSpan={isAdmin ? 10 : 9} className="text-muted-foreground px-4 py-10 text-center">
                                                 No takeoff lines yet.
                                             </td>
                                         </tr>
@@ -301,6 +311,15 @@ export default function ProjectShow({ project, dimensionFields, lines, vendors, 
                                                 <td className="text-muted-foreground px-4 py-3">{l.unit ?? '—'}</td>
                                                 <td className="text-muted-foreground px-4 py-3 text-right tabular-nums">
                                                     {Number(l.waste_pct) > 0 ? `+${Number(l.waste_pct)}%` : '—'}
+                                                </td>
+                                                <td className="px-4 py-3 text-right tabular-nums">
+                                                    {l.line_cost !== null ? (
+                                                        formatMoney(l.line_cost)
+                                                    ) : (
+                                                        <span className="text-muted-foreground" title="No price book item linked">
+                                                            —
+                                                        </span>
+                                                    )}
                                                 </td>
                                                 <td className="text-muted-foreground px-4 py-3">{l.supplier_name ?? '—'}</td>
                                                 <td className="px-4 py-3 text-center">
@@ -327,6 +346,38 @@ export default function ProjectShow({ project, dimensionFields, lines, vendors, 
                                 </tbody>
                             </table>
                         </div>
+                    </CardContent>
+                </Card>
+
+                {/* Estimate roll-up */}
+                <Card>
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-base font-semibold">Estimate</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        {summary.categories.length === 0 ? (
+                            <p className="text-muted-foreground text-sm">Link takeoff lines to Price Book items to see estimated costs.</p>
+                        ) : (
+                            <div className="max-w-md space-y-1.5">
+                                {summary.categories.map((c) => (
+                                    <div key={c.category} className="flex items-center justify-between text-sm">
+                                        <span className="text-muted-foreground">{c.category}</span>
+                                        <span className="tabular-nums">{formatMoney(c.total)}</span>
+                                    </div>
+                                ))}
+                                <div className="border-border mt-2 flex items-center justify-between border-t pt-2 text-base font-semibold">
+                                    <span>Total estimate</span>
+                                    <span className="tabular-nums">{formatMoney(summary.grand_total)}</span>
+                                </div>
+                            </div>
+                        )}
+                        {summary.unpriced_count > 0 && (
+                            <p className="text-muted-foreground inline-flex items-center gap-1.5 text-xs">
+                                <AlertTriangle className="h-3.5 w-3.5" />
+                                {summary.unpriced_count} line{summary.unpriced_count === 1 ? '' : 's'} with a quantity but no price — not included in
+                                the total.
+                            </p>
+                        )}
                     </CardContent>
                 </Card>
             </div>
@@ -390,164 +441,164 @@ export default function ProjectShow({ project, dimensionFields, lines, vendors, 
                     </DialogHeader>
                     <form onSubmit={submitLine} className="flex min-h-0 flex-1 flex-col gap-4">
                         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-1">
-                        {priceItems.length > 0 && (
-                            <div className="bg-muted/40 space-y-1.5 rounded-md p-3">
-                                <Label htmlFor="l-price-item">Pick from Price Book (optional)</Label>
-                                <Select value={lineForm.data.price_item_id} onValueChange={pickPriceItem}>
-                                    <SelectTrigger id="l-price-item">
-                                        <SelectValue placeholder="Choose an item to pre-fill…" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value={NONE}>None / custom item</SelectItem>
-                                        {priceItems.map((i) => (
-                                            <SelectItem key={i.id} value={String(i.id)}>
-                                                {i.name}
-                                                {i.unit ? ` (${i.unit})` : ''}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <p className="text-muted-foreground text-xs">
-                                    Fills in the name, category, unit, and supplier. Add the count and waste below.
-                                </p>
-                            </div>
-                        )}
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <div className="space-y-1.5">
-                                <Label htmlFor="l-category">Category</Label>
-                                <Input
-                                    id="l-category"
-                                    value={lineForm.data.category}
-                                    onChange={(e) => lineForm.setData('category', e.target.value)}
-                                    placeholder="FRAMING"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label htmlFor="l-unit">Unit</Label>
-                                <Input
-                                    id="l-unit"
-                                    value={lineForm.data.unit}
-                                    onChange={(e) => lineForm.setData('unit', e.target.value)}
-                                    placeholder="EA"
-                                />
-                            </div>
-                            <div className="space-y-1.5 sm:col-span-2">
-                                <Label htmlFor="l-item">Item</Label>
-                                <Input id="l-item" value={lineForm.data.item} onChange={(e) => lineForm.setData('item', e.target.value)} />
-                                <InputError message={lineForm.errors.item} />
-                            </div>
-                            <div className="space-y-2 sm:col-span-2">
-                                <Label htmlFor="l-formula">How to count it</Label>
-                                <p className="text-muted-foreground text-xs">
-                                    Click a measurement and a math symbol to build the count — no typing codes. Example: Exterior wall length × 2 ÷
-                                    16.
-                                </p>
-                                <Input
-                                    id="l-formula"
-                                    className="font-mono"
-                                    value={lineForm.data.formula}
-                                    onChange={(e) => lineForm.setData('formula', e.target.value)}
-                                    placeholder="Click measurements below…"
-                                />
-                                <InputError message={lineForm.errors.formula} />
+                            {priceItems.length > 0 && (
+                                <div className="bg-muted/40 space-y-1.5 rounded-md p-3">
+                                    <Label htmlFor="l-price-item">Pick from Price Book (optional)</Label>
+                                    <Select value={lineForm.data.price_item_id} onValueChange={pickPriceItem}>
+                                        <SelectTrigger id="l-price-item">
+                                            <SelectValue placeholder="Choose an item to pre-fill…" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value={NONE}>None / custom item</SelectItem>
+                                            {priceItems.map((i) => (
+                                                <SelectItem key={i.id} value={String(i.id)}>
+                                                    {i.name}
+                                                    {i.unit ? ` (${i.unit})` : ''}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-muted-foreground text-xs">
+                                        Fills in the name, category, unit, and supplier. Add the count and waste below.
+                                    </p>
+                                </div>
+                            )}
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="l-category">Category</Label>
+                                    <Input
+                                        id="l-category"
+                                        value={lineForm.data.category}
+                                        onChange={(e) => lineForm.setData('category', e.target.value)}
+                                        placeholder="FRAMING"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="l-unit">Unit</Label>
+                                    <Input
+                                        id="l-unit"
+                                        value={lineForm.data.unit}
+                                        onChange={(e) => lineForm.setData('unit', e.target.value)}
+                                        placeholder="EA"
+                                    />
+                                </div>
+                                <div className="space-y-1.5 sm:col-span-2">
+                                    <Label htmlFor="l-item">Item</Label>
+                                    <Input id="l-item" value={lineForm.data.item} onChange={(e) => lineForm.setData('item', e.target.value)} />
+                                    <InputError message={lineForm.errors.item} />
+                                </div>
+                                <div className="space-y-2 sm:col-span-2">
+                                    <Label htmlFor="l-formula">How to count it</Label>
+                                    <p className="text-muted-foreground text-xs">
+                                        Click a measurement and a math symbol to build the count — no typing codes. Example: Exterior wall length × 2
+                                        ÷ 16.
+                                    </p>
+                                    <Input
+                                        id="l-formula"
+                                        className="font-mono"
+                                        value={lineForm.data.formula}
+                                        onChange={(e) => lineForm.setData('formula', e.target.value)}
+                                        placeholder="Click measurements below…"
+                                    />
+                                    <InputError message={lineForm.errors.formula} />
 
-                                <div className="flex flex-wrap gap-1">
-                                    {dimensionFields.map((f) => (
+                                    <div className="flex flex-wrap gap-1">
+                                        {dimensionFields.map((f) => (
+                                            <Button
+                                                key={f.key}
+                                                type="button"
+                                                variant="secondary"
+                                                size="sm"
+                                                className="h-7 text-xs font-normal"
+                                                onClick={() => insertToken(f.key)}
+                                            >
+                                                {f.label.replace(/\s*\(.*\)$/, '')}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-1">
+                                        {[
+                                            { label: '+', token: '+' },
+                                            { label: '−', token: '-' },
+                                            { label: '×', token: '*' },
+                                            { label: '÷', token: '/' },
+                                            { label: '(', token: '(' },
+                                            { label: ')', token: ')' },
+                                        ].map((op) => (
+                                            <Button
+                                                key={op.token}
+                                                type="button"
+                                                variant="outline"
+                                                size="icon"
+                                                className="h-7 w-7 text-xs"
+                                                onClick={() => insertToken(op.token)}
+                                            >
+                                                {op.label}
+                                            </Button>
+                                        ))}
                                         <Button
-                                            key={f.key}
                                             type="button"
-                                            variant="secondary"
+                                            variant="ghost"
                                             size="sm"
-                                            className="h-7 text-xs font-normal"
-                                            onClick={() => insertToken(f.key)}
+                                            className="h-7 text-xs"
+                                            onClick={() => lineForm.setData('formula', '')}
                                         >
-                                            {f.label.replace(/\s*\(.*\)$/, '')}
+                                            Clear
                                         </Button>
-                                    ))}
-                                </div>
-                                <div className="flex flex-wrap items-center gap-1">
-                                    {[
-                                        { label: '+', token: '+' },
-                                        { label: '−', token: '-' },
-                                        { label: '×', token: '*' },
-                                        { label: '÷', token: '/' },
-                                        { label: '(', token: '(' },
-                                        { label: ')', token: ')' },
-                                    ].map((op) => (
-                                        <Button
-                                            key={op.token}
-                                            type="button"
-                                            variant="outline"
-                                            size="icon"
-                                            className="h-7 w-7 text-xs"
-                                            onClick={() => insertToken(op.token)}
-                                        >
-                                            {op.label}
-                                        </Button>
-                                    ))}
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7 text-xs"
-                                        onClick={() => lineForm.setData('formula', '')}
-                                    >
-                                        Clear
-                                    </Button>
-                                </div>
+                                    </div>
 
-                                <div className="bg-muted/50 flex items-center justify-between rounded-md px-3 py-2 text-sm">
-                                    <span className="text-muted-foreground">Preview for this project</span>
-                                    {previewFormula === '' ? (
-                                        <span className="text-muted-foreground">enter a count</span>
-                                    ) : previewQty === null ? (
-                                        <span className="text-destructive inline-flex items-center gap-1">
-                                            <AlertTriangle className="h-3.5 w-3.5" />
-                                            check the formula
-                                        </span>
-                                    ) : (
-                                        <span className="font-semibold tabular-nums">
-                                            = {formatQty(previewQty)} {lineForm.data.unit}
-                                            {previewWaste > 0 && (
-                                                <span className="text-muted-foreground font-normal"> (incl. {previewWaste}% waste)</span>
-                                            )}
-                                        </span>
-                                    )}
+                                    <div className="bg-muted/50 flex items-center justify-between rounded-md px-3 py-2 text-sm">
+                                        <span className="text-muted-foreground">Preview for this project</span>
+                                        {previewFormula === '' ? (
+                                            <span className="text-muted-foreground">enter a count</span>
+                                        ) : previewQty === null ? (
+                                            <span className="text-destructive inline-flex items-center gap-1">
+                                                <AlertTriangle className="h-3.5 w-3.5" />
+                                                check the formula
+                                            </span>
+                                        ) : (
+                                            <span className="font-semibold tabular-nums">
+                                                = {formatQty(previewQty)} {lineForm.data.unit}
+                                                {previewWaste > 0 && (
+                                                    <span className="text-muted-foreground font-normal"> (incl. {previewWaste}% waste)</span>
+                                                )}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="l-waste">Waste %</Label>
+                                    <Input
+                                        id="l-waste"
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={lineForm.data.waste_pct}
+                                        onChange={(e) => lineForm.setData('waste_pct', e.target.value)}
+                                    />
+                                    <InputError message={lineForm.errors.waste_pct} />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="l-supplier">Supplier</Label>
+                                    <Select value={lineForm.data.supplier_id} onValueChange={(v) => lineForm.setData('supplier_id', v)}>
+                                        <SelectTrigger id="l-supplier">
+                                            <SelectValue placeholder="None" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value={NONE}>None</SelectItem>
+                                            {vendors.map((v) => (
+                                                <SelectItem key={v.id} value={String(v.id)}>
+                                                    {v.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-1.5 sm:col-span-2">
+                                    <Label htmlFor="l-notes">Notes</Label>
+                                    <Textarea id="l-notes" value={lineForm.data.notes} onChange={(e) => lineForm.setData('notes', e.target.value)} />
                                 </div>
                             </div>
-                            <div className="space-y-1.5">
-                                <Label htmlFor="l-waste">Waste %</Label>
-                                <Input
-                                    id="l-waste"
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={lineForm.data.waste_pct}
-                                    onChange={(e) => lineForm.setData('waste_pct', e.target.value)}
-                                />
-                                <InputError message={lineForm.errors.waste_pct} />
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label htmlFor="l-supplier">Supplier</Label>
-                                <Select value={lineForm.data.supplier_id} onValueChange={(v) => lineForm.setData('supplier_id', v)}>
-                                    <SelectTrigger id="l-supplier">
-                                        <SelectValue placeholder="None" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value={NONE}>None</SelectItem>
-                                        {vendors.map((v) => (
-                                            <SelectItem key={v.id} value={String(v.id)}>
-                                                {v.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-1.5 sm:col-span-2">
-                                <Label htmlFor="l-notes">Notes</Label>
-                                <Textarea id="l-notes" value={lineForm.data.notes} onChange={(e) => lineForm.setData('notes', e.target.value)} />
-                            </div>
-                        </div>
                         </div>
                         <DialogFooter className="shrink-0">
                             <Button type="button" variant="outline" onClick={() => setLineOpen(false)}>
