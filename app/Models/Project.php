@@ -89,4 +89,12 @@ class Project extends Model
     {
         return $this->hasMany(TakeoffLine::class)->orderBy('sort')->orderBy('id');
     }
+
+    /**
+     * @return HasMany<ProjectJob, $this>
+     */
+    public function jobs(): HasMany
+    {
+        return $this->hasMany(ProjectJob::class)->orderBy('scheduled_date');
+    }
 }

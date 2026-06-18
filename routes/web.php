@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EquipmentRateController;
 use App\Http\Controllers\Admin\LaborRateController;
 use App\Http\Controllers\Admin\RateController;
+use App\Http\Controllers\JobController;
 use App\Http\Controllers\PriceBookController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\TakeoffLineController;
@@ -54,6 +55,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
     Route::patch('takeoff-lines/{takeoffLine}/toggle', [TakeoffLineController::class, 'toggle'])->name('takeoff-lines.toggle');
 
+    // M7 — Jobs + Calendar (everyone views; assigned crew toggle status; admins manage)
+    Route::get('jobs', [JobController::class, 'index'])->name('jobs.index');
+    Route::get('calendar', [JobController::class, 'calendar'])->name('calendar.index');
+    Route::patch('jobs/{job}/status', [JobController::class, 'updateStatus'])->name('jobs.status');
+
     Route::middleware('admin')->group(function () {
         Route::post('projects', [ProjectController::class, 'store'])->name('projects.store');
         Route::put('projects/{project}', [ProjectController::class, 'update'])->name('projects.update');
@@ -62,12 +68,11 @@ Route::middleware(['auth'])->group(function () {
         Route::post('projects/{project}/lines', [TakeoffLineController::class, 'store'])->name('takeoff-lines.store');
         Route::put('takeoff-lines/{takeoffLine}', [TakeoffLineController::class, 'update'])->name('takeoff-lines.update');
         Route::delete('takeoff-lines/{takeoffLine}', [TakeoffLineController::class, 'destroy'])->name('takeoff-lines.destroy');
-    });
 
-    // Stubs — routes for sidebar nav consistency; pages render "Coming soon" placeholders
-    // until their milestone is implemented. See docs/PLAN.md
-    Route::get('calendar', fn () => Inertia::render('coming-soon', ['title' => 'Calendar', 'milestone' => 'M7']))->name('calendar.index');
-    Route::get('jobs', fn () => Inertia::render('coming-soon', ['title' => 'Jobs', 'milestone' => 'M7']))->name('jobs.index');
+        Route::post('jobs', [JobController::class, 'store'])->name('jobs.store');
+        Route::put('jobs/{job}', [JobController::class, 'update'])->name('jobs.update');
+        Route::delete('jobs/{job}', [JobController::class, 'destroy'])->name('jobs.destroy');
+    });
 });
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {

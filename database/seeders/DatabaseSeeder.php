@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Project;
+use App\Models\ProjectJob;
 use App\Models\TimeCard;
 use App\Models\User;
 use Carbon\Carbon;
@@ -47,6 +49,11 @@ class DatabaseSeeder extends Seeder
         // them only once — otherwise every re-seed would pile on duplicates.
         if (TimeCard::count() === 0) {
             $this->seedDemoTimeCards($crew->concat([$foreman]), $foreman);
+        }
+
+        // Demo jobs on the demo project so the Calendar isn't empty. Seed once.
+        if (ProjectJob::count() === 0) {
+            $this->seedDemoJobs($crew->concat([$foreman]));
         }
 
         $this->command->info('Seeded users:');
@@ -103,5 +110,31 @@ class DatabaseSeeder extends Seeder
             'clock_out_at' => null,
             'notes' => 'On-site at Staebler — slab work',
         ]);
+    }
+
+    /**
+     * @param  Collection<int, User>  $workers
+     */
+    private function seedDemoJobs(Collection $workers): void
+    {
+        $project = Project::first();
+        if ($project === null) {
+            return;
+        }
+
+        $jobs = [
+            ['title' => 'Foundation pour', 'days' => 0, 'status' => ProjectJob::STATUS_IN_PROGRESS],
+            ['title' => 'Framing — west elevation', 'days' => 2, 'status' => ProjectJob::STATUS_SCHEDULED],
+            ['title' => 'Roofing — Diamond Truss delivery', 'days' => 5, 'status' => ProjectJob::STATUS_SCHEDULED],
+        ];
+
+        foreach ($jobs as $jobData) {
+            $job = $project->jobs()->create([
+                'title' => $jobData['title'],
+                'scheduled_date' => Carbon::today()->addDays($jobData['days'])->toDateString(),
+                'status' => $jobData['status'],
+            ]);
+            $job->crew()->sync($workers->pluck('id')->all());
+        }
     }
 }
