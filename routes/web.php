@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\EquipmentRateController;
 use App\Http\Controllers\Admin\LaborRateController;
 use App\Http\Controllers\Admin\RateController;
@@ -87,7 +88,14 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::put('equipment-rates/{equipmentRate}', [EquipmentRateController::class, 'update'])->name('equipment-rates.update');
     Route::delete('equipment-rates/{equipmentRate}', [EquipmentRateController::class, 'destroy'])->name('equipment-rates.destroy');
 
-    Route::get('employees', fn () => Inertia::render('coming-soon', ['title' => 'Employees', 'milestone' => 'M8']))->name('employees.index');
+    // M8 — Employees (manage crew/admin accounts)
+    Route::get('employees', [EmployeeController::class, 'index'])->name('employees.index');
+    Route::post('employees', [EmployeeController::class, 'store'])->name('employees.store');
+    Route::put('employees/{employee}', [EmployeeController::class, 'update'])->name('employees.update');
+    Route::patch('employees/{employee}/password', [EmployeeController::class, 'resetPassword'])->name('employees.password');
+    Route::delete('employees/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
+    Route::patch('employees/{employee}/restore', [EmployeeController::class, 'restore'])->withTrashed()->name('employees.restore');
+
     Route::get('reports', fn () => Inertia::render('coming-soon', ['title' => 'Reports', 'milestone' => 'M8']))->name('reports.index');
 });
 
