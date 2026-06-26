@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Api\Admin\RateController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\PriceBookController;
 use App\Http\Controllers\Api\TimeCardController;
 use App\Http\Controllers\Api\TradePartnerController;
@@ -21,8 +22,12 @@ use Illuminate\Support\Facades\Route;
 // Public
 Route::post('login', [AuthController::class, 'login'])->name('api.login');
 
-// Authenticated (any role)
-Route::middleware('auth:sanctum')->group(function () {
+// Leads — website submission (requires scoped Sanctum token with leads:create ability)
+Route::post('leads', [LeadController::class, 'store'])
+    ->middleware(['auth:sanctum', 'abilities:leads:create']);
+
+// Authenticated mobile app routes
+Route::middleware(['auth:sanctum', 'abilities:mobile'])->group(function () {
     Route::get('user', [AuthController::class, 'user'])->name('api.user');
     Route::post('logout', [AuthController::class, 'logout'])->name('api.logout');
 

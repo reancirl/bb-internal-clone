@@ -9,6 +9,8 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
@@ -39,6 +41,15 @@ class DatabaseSeeder extends Seeder
             ['email' => $u['email']],
             ['name' => $u['name'], 'password' => 'password', 'role' => User::ROLE_CREW, 'email_verified_at' => now()],
         ));
+
+        // Website integration user — used by the marketing site to POST leads via the API.
+        // Token is scoped to 'leads:create' so it cannot access any other /api/* routes.
+        $websiteUser = User::updateOrCreate(
+            ['email' => 'website-integration@buffalobuiltusa.com'],
+            ['name' => 'Website Integration', 'password' => Hash::make(Str::random(40)), 'role' => User::ROLE_CREW],
+        );
+        $websiteUser->tokens()->where('name', 'website')->delete();
+        $this->command->info('Website integration token: '.$websiteUser->createToken('website', ['leads:create'])->plainTextToken);
 
         // Reference data (catalogs, directory, demo project) — all idempotent.
         $this->call(DirectorySeeder::class);

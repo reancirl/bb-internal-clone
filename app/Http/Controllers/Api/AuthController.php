@@ -35,7 +35,7 @@ class AuthController extends Controller
         }
 
         $deviceName = $data['device_name'] ?? 'mobile';
-        $token = $user->createToken($deviceName)->plainTextToken;
+        $token = $user->createToken($deviceName, ['mobile'])->plainTextToken;
 
         return response()->json([
             'token' => $token,

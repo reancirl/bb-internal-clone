@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\EquipmentRateController;
 use App\Http\Controllers\Admin\LaborRateController;
 use App\Http\Controllers\Admin\RateController;
 use App\Http\Controllers\JobController;
+use App\Http\Controllers\LeadController;
 use App\Http\Controllers\PriceBookController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\TakeoffLineController;
@@ -27,6 +28,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('time-card', [TimeCardController::class, 'index'])->name('time-card.index');
     Route::post('time-card/clock-in', [TimeCardController::class, 'clockIn'])->name('time-card.clock-in');
     Route::post('time-card/clock-out', [TimeCardController::class, 'clockOut'])->name('time-card.clock-out');
+
+    Route::get('leads', [LeadController::class, 'index'])->name('leads.index');
 
     // M1 — Trade Partners + Vendors directory (everyone can view; admins manage)
     Route::get('trade-partners', [TradePartnerController::class, 'index'])->name('trade-partners.index');

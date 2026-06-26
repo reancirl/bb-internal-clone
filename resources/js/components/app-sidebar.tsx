@@ -12,11 +12,12 @@ import {
 } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BarChart3, Book, Briefcase, Calendar, Clock, DollarSign, FolderKanban, LayoutGrid, ShieldCheck, Store, Users } from 'lucide-react';
+import { BarChart3, Book, Briefcase, Calendar, Clock, DollarSign, FolderKanban, LayoutGrid, ShieldCheck, Store, UserPlus, Users } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const operationsNav: NavItem[] = [
     { title: 'Time Card', url: '/time-card', icon: Clock },
+    { title: 'Leads', url: '/leads', icon: UserPlus },
     { title: 'Dashboard', url: '/dashboard', icon: LayoutGrid },
     { title: 'Projects', url: '/projects', icon: FolderKanban },
     { title: 'Calendar', url: '/calendar', icon: Calendar },
