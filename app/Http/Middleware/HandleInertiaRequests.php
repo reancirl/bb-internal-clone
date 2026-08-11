@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\TimeCard;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -35,6 +36,11 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
+                // Unique per response so the client can distinguish two
+                // consecutive flashes with identical text.
+                'id' => fn () => $request->session()->has('success') || $request->session()->has('error')
+                    ? (string) Str::uuid()
+                    : null,
             ],
             'openTimeCard' => fn () => $this->openTimeCardFor($request),
         ]);

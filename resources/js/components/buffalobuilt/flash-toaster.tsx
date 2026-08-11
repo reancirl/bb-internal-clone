@@ -5,18 +5,24 @@ import { toast } from 'sonner';
 
 export function FlashToaster() {
     const { flash } = usePage<SharedData>().props;
-    const lastShown = useRef<{ success?: string; error?: string }>({});
+    // Dedup by the server-generated flash id (unique per response), so two
+    // consecutive actions with identical messages both toast, while
+    // re-renders of the same response don't.
+    const lastId = useRef<string | null>(null);
 
     useEffect(() => {
-        if (flash?.success && flash.success !== lastShown.current.success) {
+        if (!flash?.id || flash.id === lastId.current) {
+            return;
+        }
+        lastId.current = flash.id;
+
+        if (flash.success) {
             toast.success(flash.success);
-            lastShown.current.success = flash.success;
         }
-        if (flash?.error && flash.error !== lastShown.current.error) {
+        if (flash.error) {
             toast.error(flash.error);
-            lastShown.current.error = flash.error;
         }
-    }, [flash?.success, flash?.error]);
+    }, [flash?.id, flash?.success, flash?.error]);
 
     return null;
 }

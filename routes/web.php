@@ -82,6 +82,16 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
+    // CRM Pipeline (leads kanban, detail, analytics, activities)
+    Route::get('leads', [LeadController::class, 'pipeline'])->name('leads.index');
+    Route::get('leads/analytics', [LeadController::class, 'analytics'])->name('leads.analytics');
+    Route::post('leads', [LeadController::class, 'store'])->name('leads.store');
+    Route::get('leads/{lead}', [LeadController::class, 'show'])->name('leads.show');
+    Route::patch('leads/{lead}', [LeadController::class, 'update'])->name('leads.update');
+    Route::delete('leads/{lead}', [LeadController::class, 'destroy'])->name('leads.destroy');
+    Route::post('leads/{lead}/activities', [LeadController::class, 'storeActivity'])->name('leads.activities.store');
+    Route::post('leads/{lead}/convert', [LeadController::class, 'convert'])->name('leads.convert');
+
     // M2 — Labor & Equipment rate tables
     Route::get('rates', [RateController::class, 'index'])->name('rates.index');
     Route::post('labor-rates', [LaborRateController::class, 'store'])->name('labor-rates.store');

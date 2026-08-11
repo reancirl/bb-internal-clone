@@ -30,6 +30,7 @@ export interface OpenTimeCard {
 export interface Flash {
     success?: string | null;
     error?: string | null;
+    id?: string | null;
 }
 
 export interface SharedData {
