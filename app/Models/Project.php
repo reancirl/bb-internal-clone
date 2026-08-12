@@ -97,4 +97,12 @@ class Project extends Model
     {
         return $this->hasMany(ProjectJob::class)->orderBy('scheduled_date');
     }
+
+    /**
+     * @return HasMany<ProjectSelection, $this>
+     */
+    public function selections(): HasMany
+    {
+        return $this->hasMany(ProjectSelection::class);
+    }
 }

@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BarChart3, Book, Briefcase, Calendar, Clock, DollarSign, FolderKanban, LayoutGrid, PieChart, ShieldCheck, Store, UserPlus, Users, Kanban } from 'lucide-react';
+import { BarChart3, Book, Briefcase, Calendar, ClipboardList, Clock, DollarSign, FolderKanban, LayoutGrid, PieChart, ShieldCheck, Store, UserPlus, Users, Kanban } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const operationsNav: NavItem[] = [
@@ -31,6 +31,7 @@ const adminNav: NavItem[] = [
     { title: 'Admin Dashboard', url: '/admin/dashboard', icon: ShieldCheck },
     { title: 'CRM Pipeline', url: '/admin/leads', icon: Kanban },
     { title: 'Pipeline Analytics', url: '/admin/leads/analytics', icon: PieChart },
+    { title: 'Decision Catalog', url: '/admin/decision-catalog', icon: ClipboardList },
     { title: 'Rates', url: '/admin/rates', icon: DollarSign },
     { title: 'Employees', url: '/admin/employees', icon: Users },
     { title: 'Reports', url: '/admin/reports', icon: BarChart3 },

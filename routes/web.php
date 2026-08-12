@@ -5,8 +5,10 @@ use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\EquipmentRateController;
 use App\Http\Controllers\Admin\LaborRateController;
 use App\Http\Controllers\Admin\RateController;
+use App\Http\Controllers\Admin\DecisionCatalogController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\LeadController;
+use App\Http\Controllers\SelectionController;
 use App\Http\Controllers\PriceBookController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\TakeoffLineController;
@@ -59,6 +61,18 @@ Route::middleware(['auth'])->group(function () {
     Route::get('projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
     Route::patch('takeoff-lines/{takeoffLine}/toggle', [TakeoffLineController::class, 'toggle'])->name('takeoff-lines.toggle');
 
+    // Customer Selections (Buildertrend-style) — everyone views; admins manage
+    Route::get('projects/{project}/selections', [SelectionController::class, 'index'])->name('selections.index');
+    Route::middleware('admin')->group(function () {
+        Route::post('projects/{project}/selections/generate', [SelectionController::class, 'generate'])->name('selections.generate');
+        Route::put('selections/{selection}', [SelectionController::class, 'update'])->name('selections.update');
+        Route::delete('selections/{selection}', [SelectionController::class, 'destroy'])->name('selections.destroy');
+        Route::post('selections/{selection}/choices', [SelectionController::class, 'storeChoice'])->name('selections.choices.store');
+        Route::put('selection-choices/{choice}', [SelectionController::class, 'updateChoice'])->name('selections.choices.update');
+        Route::delete('selection-choices/{choice}', [SelectionController::class, 'destroyChoice'])->name('selections.choices.destroy');
+        Route::post('selections/{selection}/approve', [SelectionController::class, 'approve'])->name('selections.approve');
+    });
+
     // M7 — Jobs + Calendar (everyone views; assigned crew toggle status; admins manage)
     Route::get('jobs', [JobController::class, 'index'])->name('jobs.index');
     Route::get('calendar', [JobController::class, 'calendar'])->name('calendar.index');
@@ -108,6 +122,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::patch('employees/{employee}/password', [EmployeeController::class, 'resetPassword'])->name('employees.password');
     Route::delete('employees/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
     Route::patch('employees/{employee}/restore', [EmployeeController::class, 'restore'])->withTrashed()->name('employees.restore');
+
+    // Decision catalog (selections template shared by all projects)
+    Route::get('decision-catalog', [DecisionCatalogController::class, 'index'])->name('decision-catalog.index');
+    Route::post('decision-categories', [DecisionCatalogController::class, 'storeCategory'])->name('decision-categories.store');
+    Route::put('decision-categories/{category}', [DecisionCatalogController::class, 'updateCategory'])->name('decision-categories.update');
+    Route::post('decision-categories/{category}/items', [DecisionCatalogController::class, 'storeItem'])->name('decision-items.store');
+    Route::put('decision-items/{item}', [DecisionCatalogController::class, 'updateItem'])->name('decision-items.update');
 
     Route::get('reports', fn () => Inertia::render('coming-soon', ['title' => 'Reports', 'milestone' => 'M8']))->name('reports.index');
 });

@@ -24,8 +24,8 @@ import {
     STATUS_VARIANT,
     type TakeoffLineRow,
 } from '@/types/projects';
-import { Head, router, useForm } from '@inertiajs/react';
-import { AlertTriangle, Download, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
+import { AlertTriangle, ClipboardList, Download, Pencil, Plus, Trash2 } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
 interface PageProps {
@@ -194,6 +194,14 @@ export default function ProjectShow({ project, dimensionFields, lines, summary, 
                             {project.client_name ?? 'No client'}
                             {project.address ? ` · ${project.address}` : ''}
                         </p>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button variant="outline" className="gap-2" asChild>
+                            <Link href={`/projects/${project.id}/selections`} prefetch>
+                                <ClipboardList className="h-4 w-4" />
+                                Selections
+                            </Link>
+                        </Button>
                     </div>
                     {isAdmin && (
                         <div className="flex gap-2">
