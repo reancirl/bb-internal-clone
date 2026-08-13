@@ -105,4 +105,12 @@ class Project extends Model
     {
         return $this->hasMany(ProjectSelection::class);
     }
+
+    /**
+     * @return HasMany<ProjectBudgetLine, $this>
+     */
+    public function budgetLines(): HasMany
+    {
+        return $this->hasMany(ProjectBudgetLine::class);
+    }
 }

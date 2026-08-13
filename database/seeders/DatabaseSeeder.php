@@ -57,6 +57,7 @@ class DatabaseSeeder extends Seeder
         $this->call(ProjectSeeder::class);
         $this->call(LeadSeeder::class);
         $this->call(DecisionCatalogSeeder::class);
+        $this->call(BudgetCatalogSeeder::class);
 
         // Sample time cards are random demo data, not reference data, so seed
         // them only once — otherwise every re-seed would pile on duplicates.

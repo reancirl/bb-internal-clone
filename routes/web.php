@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\EquipmentRateController;
 use App\Http\Controllers\Admin\LaborRateController;
 use App\Http\Controllers\Admin\RateController;
 use App\Http\Controllers\Admin\DecisionCatalogController;
+use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\SelectionController;
@@ -73,6 +74,16 @@ Route::middleware(['auth'])->group(function () {
         Route::post('selections/{selection}/approve', [SelectionController::class, 'approve'])->name('selections.approve');
     });
 
+    // Project Budget (bid vs actual) — office only per permissions matrix
+    Route::middleware('admin')->group(function () {
+        Route::get('projects/{project}/budget', [BudgetController::class, 'index'])->name('budget.index');
+        Route::post('projects/{project}/budget/generate', [BudgetController::class, 'generate'])->name('budget.generate');
+        Route::post('projects/{project}/budget/lines', [BudgetController::class, 'storeLine'])->name('budget.lines.store');
+        Route::get('projects/{project}/budget/export', [BudgetController::class, 'export'])->name('budget.export');
+        Route::put('budget-lines/{line}', [BudgetController::class, 'updateLine'])->name('budget.lines.update');
+        Route::delete('budget-lines/{line}', [BudgetController::class, 'destroyLine'])->name('budget.lines.destroy');
+    });
+
     // M7 — Jobs + Calendar (everyone views; assigned crew toggle status; admins manage)
     Route::get('jobs', [JobController::class, 'index'])->name('jobs.index');
     Route::get('calendar', [JobController::class, 'calendar'])->name('calendar.index');
@@ -130,7 +141,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('decision-categories/{category}/items', [DecisionCatalogController::class, 'storeItem'])->name('decision-items.store');
     Route::put('decision-items/{item}', [DecisionCatalogController::class, 'updateItem'])->name('decision-items.update');
 
-    Route::get('reports', fn () => Inertia::render('coming-soon', ['title' => 'Reports', 'milestone' => 'M8']))->name('reports.index');
+    Route::get('reports', [BudgetController::class, 'report'])->name('reports.index');
 });
 
 require __DIR__.'/settings.php';
