@@ -7,6 +7,8 @@ use App\Http\Controllers\Admin\LaborRateController;
 use App\Http\Controllers\Admin\RateController;
 use App\Http\Controllers\Admin\DecisionCatalogController;
 use App\Http\Controllers\BudgetController;
+use App\Http\Controllers\DailyLogController;
+use App\Http\Controllers\DailyLogPhotoController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\SelectionController;
@@ -73,6 +75,17 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('selection-choices/{choice}', [SelectionController::class, 'destroyChoice'])->name('selections.choices.destroy');
         Route::post('selections/{selection}/approve', [SelectionController::class, 'approve'])->name('selections.approve');
     });
+
+    // Daily Logs — field documentation; everyone views and writes, authors
+    // (or admins) edit/delete their own entries
+    Route::get('daily-logs', [DailyLogController::class, 'index'])->name('daily-logs.index');
+    Route::post('daily-logs', [DailyLogController::class, 'store'])->name('daily-logs.store');
+    Route::put('daily-logs/{dailyLog}', [DailyLogController::class, 'update'])->name('daily-logs.update');
+    Route::delete('daily-logs/{dailyLog}', [DailyLogController::class, 'destroy'])->name('daily-logs.destroy');
+    Route::post('daily-logs/{dailyLog}/photos', [DailyLogPhotoController::class, 'store'])->name('daily-logs.photos.store');
+    Route::get('daily-log-photos/{photo}', [DailyLogPhotoController::class, 'show'])->name('daily-logs.photos.show');
+    Route::get('daily-log-photos/{photo}/thumb', [DailyLogPhotoController::class, 'thumb'])->name('daily-logs.photos.thumb');
+    Route::delete('daily-log-photos/{photo}', [DailyLogPhotoController::class, 'destroy'])->name('daily-logs.photos.destroy');
 
     // Project Budget (bid vs actual) — office only per permissions matrix
     Route::middleware('admin')->group(function () {

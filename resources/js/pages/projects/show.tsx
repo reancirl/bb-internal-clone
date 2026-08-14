@@ -25,7 +25,7 @@ import {
     type TakeoffLineRow,
 } from '@/types/projects';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { AlertTriangle, ClipboardList, Download, Pencil, Plus, Trash2, Wallet } from 'lucide-react';
+import { AlertTriangle, ClipboardList, Download, NotebookPen, Pencil, Plus, Trash2, Wallet } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
 interface PageProps {
@@ -200,6 +200,12 @@ export default function ProjectShow({ project, dimensionFields, lines, summary, 
                             <Link href={`/projects/${project.id}/selections`} prefetch>
                                 <ClipboardList className="h-4 w-4" />
                                 Selections
+                            </Link>
+                        </Button>
+                        <Button variant="outline" className="gap-2" asChild>
+                            <Link href={`/daily-logs?project=${project.id}`} prefetch>
+                                <NotebookPen className="h-4 w-4" />
+                                Logs
                             </Link>
                         </Button>
                         {isAdmin && (
