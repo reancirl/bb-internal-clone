@@ -57,6 +57,7 @@ class Project extends Model
         'client_name',
         'address',
         'status',
+        'contract_price_cents',
         'house_sqft', 'garage_sqft', 'roof_sqft', 'valley_lft', 'eve_lft', 'rake_lft',
         'ext_wall_lft', 'int_wall_lft', 'ext_wall_sqft', 'int_wall_sqft', 'ceiling_sqft',
         'wall_height', 'footer_height', 'footer_width', 'slab_depth',
@@ -64,7 +65,10 @@ class Project extends Model
 
     protected function casts(): array
     {
-        return array_fill_keys(self::DIMENSION_KEYS, 'decimal:2');
+        return [
+            ...array_fill_keys(self::DIMENSION_KEYS, 'decimal:2'),
+            'contract_price_cents' => 'integer',
+        ];
     }
 
     /**
@@ -112,5 +116,13 @@ class Project extends Model
     public function budgetLines(): HasMany
     {
         return $this->hasMany(ProjectBudgetLine::class);
+    }
+
+    /**
+     * @return HasMany<ChangeOrder, $this>
+     */
+    public function changeOrders(): HasMany
+    {
+        return $this->hasMany(ChangeOrder::class)->orderBy('number');
     }
 }

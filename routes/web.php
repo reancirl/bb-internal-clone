@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\LaborRateController;
 use App\Http\Controllers\Admin\RateController;
 use App\Http\Controllers\Admin\DecisionCatalogController;
 use App\Http\Controllers\BudgetController;
+use App\Http\Controllers\ChangeOrderController;
 use App\Http\Controllers\DailyLogController;
 use App\Http\Controllers\DailyLogPhotoController;
 use App\Http\Controllers\JobController;
@@ -95,6 +96,14 @@ Route::middleware(['auth'])->group(function () {
         Route::get('projects/{project}/budget/export', [BudgetController::class, 'export'])->name('budget.export');
         Route::put('budget-lines/{line}', [BudgetController::class, 'updateLine'])->name('budget.lines.update');
         Route::delete('budget-lines/{line}', [BudgetController::class, 'destroyLine'])->name('budget.lines.destroy');
+
+        // Change Orders (customer-approved contract changes)
+        Route::post('projects/{project}/change-orders', [ChangeOrderController::class, 'store'])->name('change-orders.store');
+        Route::patch('projects/{project}/contract', [ChangeOrderController::class, 'updateContract'])->name('projects.contract');
+        Route::put('change-orders/{changeOrder}', [ChangeOrderController::class, 'update'])->name('change-orders.update');
+        Route::post('change-orders/{changeOrder}/decide', [ChangeOrderController::class, 'decide'])->name('change-orders.decide');
+        Route::post('change-orders/{changeOrder}/revert', [ChangeOrderController::class, 'revert'])->name('change-orders.revert');
+        Route::delete('change-orders/{changeOrder}', [ChangeOrderController::class, 'destroy'])->name('change-orders.destroy');
     });
 
     // M7 — Jobs + Calendar (everyone views; assigned crew toggle status; admins manage)

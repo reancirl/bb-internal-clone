@@ -24,6 +24,18 @@ export interface BudgetLine {
   variance_cents: number;
 }
 
+export interface ChangeOrderEntry {
+  id: number;
+  number: number;
+  title: string;
+  description: string | null;
+  price_cents: number | null;
+  status: 'pending' | 'approved' | 'declined';
+  decided_at: string | null;
+  decided_by: string | null;
+  decision_comment: string | null;
+}
+
 export type MoneyField =
   | 'bid_sub_cents'
   | 'actual_sub_cents'

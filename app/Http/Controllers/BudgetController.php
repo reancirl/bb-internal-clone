@@ -26,7 +26,24 @@ class BudgetController extends Controller
             ->values();
 
         return Inertia::render('projects/budget', [
-            'project' => ['id' => $project->id, 'name' => $project->name, 'client_name' => $project->client_name],
+            'project' => [
+                'id' => $project->id,
+                'name' => $project->name,
+                'client_name' => $project->client_name,
+                'contract_price_cents' => $project->contract_price_cents,
+            ],
+            'changeOrders' => $project->changeOrders()->with('decidedBy:id,name')->get()
+                ->map(fn ($co) => [
+                    'id' => $co->id,
+                    'number' => $co->number,
+                    'title' => $co->title,
+                    'description' => $co->description,
+                    'price_cents' => $co->price_cents,
+                    'status' => $co->status,
+                    'decided_at' => $co->decided_at?->toISOString(),
+                    'decided_by' => $co->decidedBy?->name,
+                    'decision_comment' => $co->decision_comment,
+                ]),
             'sections' => BudgetSection::where('is_active', true)->orderBy('sort_order')->get(['id', 'name']),
             'lines' => $lines->map(fn (ProjectBudgetLine $l) => [
                 'id' => $l->id,

@@ -1,19 +1,31 @@
-import { useMemo, useState } from 'react';
-import { Head, Link, router } from '@inertiajs/react';
-import { BudgetLine, BudgetSectionOption, MoneyField } from '@/types/budget';
+import { useEffect, useMemo, useState } from 'react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { BudgetLine, BudgetSectionOption, ChangeOrderEntry, MoneyField } from '@/types/budget';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { useConfirm } from '@/components/buffalobuilt/confirm-dialog';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Circle, CircleCheck, Download, ListPlus, Plus, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Circle, CircleCheck, Download, ListPlus, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface BudgetPageProps {
-  project: { id: number; name: string; client_name: string | null };
+  project: { id: number; name: string; client_name: string | null; contract_price_cents: number | null };
   sections: BudgetSectionOption[];
   lines: BudgetLine[];
+  changeOrders: ChangeOrderEntry[];
 }
 
 function formatMoney(cents: number): string {
@@ -44,7 +56,7 @@ const MONEY_COLUMNS: Array<{ field: MoneyField; label: string; group: string }> 
   { field: 'actual_labor_cents', label: 'Actual', group: 'Labor' },
 ];
 
-export default function ProjectBudget({ project, sections, lines }: BudgetPageProps) {
+export default function ProjectBudget({ project, sections, lines, changeOrders }: BudgetPageProps) {
   const [confirm, confirmDialog] = useConfirm();
   const [activeSectionId, setActiveSectionId] = useState<number | null>(null);
   const [addingLine, setAddingLine] = useState(false);
@@ -151,6 +163,9 @@ export default function ProjectBudget({ project, sections, lines }: BudgetPagePr
             </div>
           </div>
         </div>
+
+        {/* Contract & Change Orders */}
+        <ChangeOrdersPanel project={project} changeOrders={changeOrders} />
 
         {lines.length === 0 ? (
           <div className="flex min-h-64 flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-dashed p-8 text-center">
@@ -276,6 +291,328 @@ export default function ProjectBudget({ project, sections, lines }: BudgetPagePr
         )}
       </div>
     </AppLayout>
+  );
+}
+
+const CO_STATUS_STYLES = {
+  pending: 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-900',
+  approved: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/60 dark:text-green-300 dark:border-green-900',
+  declined: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/60 dark:text-red-300 dark:border-red-900',
+};
+
+function ChangeOrdersPanel({
+  project,
+  changeOrders,
+}: {
+  project: BudgetPageProps['project'];
+  changeOrders: ChangeOrderEntry[];
+}) {
+  const [contract, setContract] = useState(centsToInput(project.contract_price_cents));
+  const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<ChangeOrderEntry | null>(null);
+  const [deciding, setDeciding] = useState<{ co: ChangeOrderEntry; status: 'approved' | 'declined' } | null>(null);
+
+  const approvedTotal = changeOrders
+    .filter((co) => co.status === 'approved')
+    .reduce((sum, co) => sum + (co.price_cents ?? 0), 0);
+  const currentContract = (project.contract_price_cents ?? 0) + approvedTotal;
+
+  return (
+    <Card>
+      <CardContent className="space-y-3 p-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="flex flex-wrap items-end gap-6">
+            <div className="space-y-1">
+              <Label className="text-muted-foreground text-xs">Original contract ($)</Label>
+              <Input
+                type="number"
+                min="0"
+                step="1000"
+                placeholder="Not set"
+                value={contract}
+                onChange={(e) => setContract(e.target.value)}
+                onBlur={() => {
+                  const cents = inputToCents(contract);
+                  if (cents !== project.contract_price_cents) {
+                    router.patch(`/projects/${project.id}/contract`, { contract_price_cents: cents }, { preserveScroll: true });
+                  }
+                }}
+                className="w-40 tabular-nums"
+              />
+            </div>
+            <div className="pb-1 text-sm">
+              <span className="text-muted-foreground">+ approved change orders </span>
+              <span className="font-semibold tabular-nums">{formatMoney(approvedTotal)}</span>
+              <span className="text-muted-foreground"> = current contract </span>
+              <span className="text-base font-bold tabular-nums">{formatMoney(currentContract)}</span>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" className="gap-1" onClick={() => setAdding(true)}>
+            <Plus className="h-3.5 w-3.5" />
+            New change order
+          </Button>
+        </div>
+
+        {changeOrders.length > 0 && (
+          <div className="space-y-1.5">
+            {changeOrders.map((co) => (
+              <div
+                key={co.id}
+                className={cn('rounded-md border p-2.5', co.status === 'declined' && 'opacity-70')}
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-medium">
+                    CO-{co.number} — {co.title}
+                  </span>
+                  <Badge className={cn('capitalize', CO_STATUS_STYLES[co.status])}>{co.status}</Badge>
+                  <span className="ml-auto text-sm font-semibold tabular-nums">
+                    {co.price_cents !== null ? formatMoney(co.price_cents) : '—'}
+                  </span>
+                  {co.status === 'pending' ? (
+                    <div className="flex gap-1">
+                      <Button
+                        size="sm"
+                        className="h-7 bg-green-600 px-2 hover:bg-green-700"
+                        onClick={() => setDeciding({ co, status: 'approved' })}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-destructive h-7 px-2"
+                        onClick={() => setDeciding({ co, status: 'declined' })}
+                      >
+                        Decline
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground h-7 w-7"
+                        onClick={() => setEditing(co)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-destructive h-7 w-7"
+                        onClick={() => router.delete(`/change-orders/${co.id}`, { preserveScroll: true })}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground h-7 px-2 text-xs"
+                      onClick={() => router.post(`/change-orders/${co.id}/revert`, {}, { preserveScroll: true })}
+                    >
+                      Revert to pending
+                    </Button>
+                  )}
+                </div>
+                {co.description && <p className="text-muted-foreground mt-1 text-sm">{co.description}</p>}
+                {co.decided_at && (
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    {co.status === 'approved' ? 'Approved' : 'Declined'}
+                    {co.decided_by ? ` by ${co.decided_by}` : ''} on {new Date(co.decided_at).toLocaleDateString()}
+                    {co.decision_comment ? ` — “${co.decision_comment}”` : ''}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+      </CardContent>
+
+      {/* Create / Edit change order modal */}
+      <ChangeOrderFormModal
+        open={adding || editing !== null}
+        projectId={project.id}
+        initial={editing}
+        onClose={() => {
+          setAdding(false);
+          setEditing(null);
+        }}
+      />
+
+      {/* Decision dialog — approve/decline on behalf of the customer */}
+      <Dialog open={deciding !== null} onOpenChange={(open) => !open && setDeciding(null)}>
+        <DialogContent className="sm:max-w-md">
+          {deciding && <DecisionDialogBody deciding={deciding} onClose={() => setDeciding(null)} />}
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
+function DecisionDialogBody({
+  deciding,
+  onClose,
+}: {
+  deciding: { co: ChangeOrderEntry; status: 'approved' | 'declined' };
+  onClose: () => void;
+}) {
+  const [comment, setComment] = useState('');
+  const isApprove = deciding.status === 'approved';
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>{isApprove ? 'Approve change order?' : 'Decline change order?'}</DialogTitle>
+        <DialogDescription>
+          You are recording the customer's {isApprove ? 'approval' : 'decline'} of "CO-{deciding.co.number} —{' '}
+          {deciding.co.title}"
+          {isApprove && deciding.co.price_cents !== null && ` for ${formatMoney(deciding.co.price_cents)}`}.
+          {isApprove && ' The amount is added to the contract and a cost line is created in the budget.'}
+        </DialogDescription>
+      </DialogHeader>
+      <div className="space-y-2 py-2">
+        <Label htmlFor="co_comment">Comment (optional)</Label>
+        <Textarea
+          id="co_comment"
+          placeholder="e.g. Customer signed the revised quote on Aug 15"
+          rows={2}
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+        />
+      </div>
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button
+          variant={isApprove ? 'default' : 'destructive'}
+          className={cn(isApprove && 'bg-green-600 hover:bg-green-700')}
+          onClick={() =>
+            router.post(
+              `/change-orders/${deciding.co.id}/decide`,
+              { status: deciding.status, comment: comment.trim() || null },
+              { preserveScroll: true, onSuccess: onClose },
+            )
+          }
+        >
+          {isApprove ? 'Approve' : 'Decline'}
+        </Button>
+      </DialogFooter>
+    </>
+  );
+}
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return <p className="text-destructive text-xs">{message}</p>;
+}
+
+function ChangeOrderFormModal({
+  open,
+  projectId,
+  initial,
+  onClose,
+}: {
+  open: boolean;
+  projectId: number;
+  initial: ChangeOrderEntry | null;
+  onClose: () => void;
+}) {
+  const { errors } = usePage().props;
+  const isEdit = initial !== null;
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [price, setPrice] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  // Populate from the change order being edited (or blank) each time it opens.
+  useEffect(() => {
+    setTitle(initial?.title ?? '');
+    setDescription(initial?.description ?? '');
+    setPrice(centsToInput(initial?.price_cents ?? null));
+  }, [open, initial]);
+
+  const save = () => {
+    if (!title.trim()) return;
+    const payload = {
+      title: title.trim(),
+      description: description.trim() || null,
+      price_cents: inputToCents(price),
+    };
+    const options = {
+      preserveScroll: true,
+      onStart: () => setSaving(true),
+      onFinish: () => setSaving(false),
+      onSuccess: onClose,
+    };
+    if (isEdit) {
+      router.put(`/change-orders/${initial.id}`, payload, options);
+    } else {
+      router.post(`/projects/${projectId}/change-orders`, payload, options);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? `Edit CO-${initial.number}` : 'New Change Order'}</DialogTitle>
+          <DialogDescription>
+            {isEdit
+              ? 'Editable while pending — once approved, the terms are locked.'
+              : 'A customer-requested change to the contract. It stays pending until the customer approves the price.'}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label htmlFor="co_title">What changed? *</Label>
+            <Input
+              id="co_title"
+              placeholder="e.g. Extra window in master bedroom"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              autoFocus
+            />
+            <FieldError message={errors.title} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="co_price">Price to customer ($)</Label>
+            <Input
+              id="co_price"
+              type="number"
+              min="0"
+              step="100"
+              placeholder="e.g. 2800"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+            />
+            <FieldError message={errors.price_cents} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="co_description">Agreed scope (optional)</Label>
+            <Textarea
+              id="co_description"
+              placeholder="e.g. One Jeld-Wen casement window, north wall — includes framing, trim, and paint touch-up"
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={save} disabled={saving || !title.trim()}>
+            {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Change Order'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
