@@ -1,20 +1,21 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\DecisionCatalogController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\EquipmentRateController;
 use App\Http\Controllers\Admin\LaborRateController;
 use App\Http\Controllers\Admin\RateController;
-use App\Http\Controllers\Admin\DecisionCatalogController;
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\ChangeOrderController;
 use App\Http\Controllers\DailyLogController;
 use App\Http\Controllers\DailyLogPhotoController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\LeadController;
-use App\Http\Controllers\SelectionController;
 use App\Http\Controllers\PriceBookController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\SelectionController;
 use App\Http\Controllers\TakeoffLineController;
 use App\Http\Controllers\TimeCardController;
 use App\Http\Controllers\TradePartnerController;
@@ -164,6 +165,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::put('decision-items/{item}', [DecisionCatalogController::class, 'updateItem'])->name('decision-items.update');
 
     Route::get('reports', [BudgetController::class, 'report'])->name('reports.index');
+    Route::get('reports/time-summary', [ReportController::class, 'timeSummary'])->name('reports.time-summary');
+    Route::get('reports/time-summary/export', [ReportController::class, 'timeSummaryExport'])->name('reports.time-summary.export');
+    Route::get('reports/material-status', [ReportController::class, 'materialStatus'])->name('reports.material-status');
+    Route::get('reports/material-status/export', [ReportController::class, 'materialStatusExport'])->name('reports.material-status.export');
 });
 
 require __DIR__.'/settings.php';
