@@ -15,6 +15,7 @@ use App\Http\Controllers\JobController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\PriceBookController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProposalController;
 use App\Http\Controllers\SelectionController;
 use App\Http\Controllers\TakeoffLineController;
 use App\Http\Controllers\TimeCardController;
@@ -163,6 +164,15 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::put('decision-categories/{category}', [DecisionCatalogController::class, 'updateCategory'])->name('decision-categories.update');
     Route::post('decision-categories/{category}/items', [DecisionCatalogController::class, 'storeItem'])->name('decision-items.store');
     Route::put('decision-items/{item}', [DecisionCatalogController::class, 'updateItem'])->name('decision-items.update');
+
+    // Proposals (customer-facing quotes snapshotted from the takeoff estimate)
+    Route::get('proposals', [ProposalController::class, 'index'])->name('proposals.index');
+    Route::post('projects/{project}/proposals', [ProposalController::class, 'store'])->name('proposals.store');
+    Route::get('proposals/{proposal}', [ProposalController::class, 'show'])->name('proposals.show');
+    Route::get('proposals/{proposal}/pdf', [ProposalController::class, 'pdf'])->name('proposals.pdf');
+    Route::put('proposals/{proposal}', [ProposalController::class, 'update'])->name('proposals.update');
+    Route::post('proposals/{proposal}/transition', [ProposalController::class, 'transition'])->name('proposals.transition');
+    Route::delete('proposals/{proposal}', [ProposalController::class, 'destroy'])->name('proposals.destroy');
 
     Route::get('reports', [BudgetController::class, 'report'])->name('reports.index');
     Route::get('reports/time-summary', [ReportController::class, 'timeSummary'])->name('reports.time-summary');

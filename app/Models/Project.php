@@ -125,4 +125,12 @@ class Project extends Model
     {
         return $this->hasMany(ChangeOrder::class)->orderBy('number');
     }
+
+    /**
+     * @return HasMany<ProjectProposal, $this>
+     */
+    public function proposals(): HasMany
+    {
+        return $this->hasMany(ProjectProposal::class)->orderByDesc('id');
+    }
 }
