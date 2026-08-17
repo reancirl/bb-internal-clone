@@ -1,10 +1,14 @@
+import { Pagination } from '@/components/buffalobuilt/pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
+import { formatCents } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
+import { type Paginated } from '@/types/directory';
+import { PROPOSAL_STATUS_STYLES } from '@/types/proposals';
 import { Head, Link, router } from '@inertiajs/react';
 import { FileText, Plus } from 'lucide-react';
 import { useState } from 'react';
@@ -29,8 +33,8 @@ interface ProjectOption {
 }
 
 interface Props {
-    proposals: ProposalRow[];
-    filters: { status: string | null };
+    proposals: Paginated<ProposalRow>;
+    filters: { status: string | null; per_page: number };
     statuses: string[];
     projects: ProjectOption[];
 }
@@ -39,17 +43,6 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
     { title: 'Proposals', href: '/admin/proposals' },
 ];
-
-const STATUS_STYLES: Record<string, string> = {
-    draft: 'bg-muted text-muted-foreground',
-    sent: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
-    accepted: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
-    rejected: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
-};
-
-function formatMoney(cents: number): string {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
-}
 
 export default function ProposalsIndex({ proposals, filters, statuses, projects }: Props) {
     const [projectId, setProjectId] = useState('');
@@ -62,7 +55,11 @@ export default function ProposalsIndex({ proposals, filters, statuses, projects 
     };
 
     const filterStatus = (status: string | null) => {
-        router.get('/admin/proposals', status ? { status } : {}, { preserveState: true, replace: true });
+        router.get(
+            '/admin/proposals',
+            { ...(status ? { status } : {}), per_page: filters.per_page },
+            { preserveState: true, preserveScroll: true, replace: true, only: ['proposals', 'filters'] },
+        );
     };
 
     return (
@@ -125,12 +122,12 @@ export default function ProposalsIndex({ proposals, filters, statuses, projects 
                             All Proposals
                         </CardTitle>
                         <CardDescription>
-                            {proposals.length} proposal{proposals.length === 1 ? '' : 's'}
+                            {proposals.total} proposal{proposals.total === 1 ? '' : 's'}
                             {filters.status ? ` with status "${filters.status}"` : ''}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="p-0">
-                        {proposals.length === 0 ? (
+                        {proposals.data.length === 0 ? (
                             <p className="text-muted-foreground px-6 pb-6 text-sm">
                                 No proposals yet. Pick a project above and click New Proposal to snapshot its estimate.
                             </p>
@@ -148,7 +145,7 @@ export default function ProposalsIndex({ proposals, filters, statuses, projects 
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {proposals.map((p) => (
+                                        {proposals.data.map((p) => (
                                             <tr key={p.id} className="hover:bg-muted/40 border-b last:border-0">
                                                 <td className="px-4 py-2.5">
                                                     <Link href={`/admin/proposals/${p.id}`} className="font-medium hover:underline">
@@ -160,9 +157,9 @@ export default function ProposalsIndex({ proposals, filters, statuses, projects 
                                                     {p.client_name && <div className="text-muted-foreground text-xs">{p.client_name}</div>}
                                                 </td>
                                                 <td className="px-4 py-2.5">
-                                                    <Badge className={cn('capitalize', STATUS_STYLES[p.status])}>{p.status}</Badge>
+                                                    <Badge className={cn('capitalize', PROPOSAL_STATUS_STYLES[p.status])}>{p.status}</Badge>
                                                 </td>
-                                                <td className="px-4 py-2.5 text-right font-semibold tabular-nums">{formatMoney(p.total_cents)}</td>
+                                                <td className="px-4 py-2.5 text-right font-semibold tabular-nums">{formatCents(p.total_cents)}</td>
                                                 <td className="text-muted-foreground px-4 py-2.5">{p.valid_until ?? '—'}</td>
                                                 <td className="text-muted-foreground px-4 py-2.5">{p.created_at}</td>
                                             </tr>
@@ -173,6 +170,13 @@ export default function ProposalsIndex({ proposals, filters, statuses, projects 
                         )}
                     </CardContent>
                 </Card>
+
+                <Pagination
+                    paginator={proposals}
+                    routeName="admin.proposals.index"
+                    params={{ status: filters.status, per_page: filters.per_page }}
+                    propKey="proposals"
+                />
             </div>
         </AppLayout>
     );

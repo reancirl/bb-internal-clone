@@ -75,7 +75,7 @@ class ProjectProposal extends Model
      */
     public function lines(): HasMany
     {
-        return $this->hasMany(ProjectProposalLine::class);
+        return $this->hasMany(ProjectProposalLine::class)->orderBy('sort');
     }
 
     /**
@@ -98,18 +98,23 @@ class ProjectProposal extends Model
 
     /**
      * Next sequential number for the given year, e.g. "PROP-2026-003".
+     *
+     * The max is computed numerically (not by string sort, which breaks past
+     * seq 999) under lockForUpdate. Callers must run inside a transaction and
+     * retry on a unique-constraint violation — the lock narrows but cannot
+     * fully close the concurrent-insert window.
      */
     public static function nextNumber(int $year): string
     {
         $prefix = sprintf('PROP-%d-', $year);
 
-        $last = static::query()
+        $max = static::query()
             ->where('number', 'like', $prefix.'%')
-            ->orderByDesc('number')
-            ->value('number');
+            ->lockForUpdate()
+            ->pluck('number')
+            ->map(fn (string $number) => (int) substr($number, strlen($prefix)))
+            ->max();
 
-        $seq = $last === null ? 1 : (int) substr($last, strlen($prefix)) + 1;
-
-        return $prefix.str_pad((string) $seq, 3, '0', STR_PAD_LEFT);
+        return $prefix.str_pad((string) (($max ?? 0) + 1), 3, '0', STR_PAD_LEFT);
     }
 }

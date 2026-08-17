@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PriceItem;
 use App\Models\Project;
+use App\Models\ProjectProposal;
 use App\Models\TakeoffLine;
 use App\Models\Vendor;
 use App\Support\TakeoffCosting;
@@ -192,6 +193,13 @@ class ProjectController extends Controller
 
     public function destroy(Project $project): RedirectResponse
     {
+        // Sent/accepted/rejected proposals are customer-facing records whose
+        // numbers must never be reissued — deleting the project would cascade
+        // them away and let nextNumber() hand out the freed numbers again.
+        if ($project->proposals()->where('status', '!=', ProjectProposal::STATUS_DRAFT)->exists()) {
+            return back()->with('error', 'This project has sent or decided proposals. Delete is blocked to preserve those records.');
+        }
+
         $project->delete();
 
         return redirect()->route('projects.index')->with('success', 'Project deleted.');

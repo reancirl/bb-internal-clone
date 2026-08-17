@@ -1,12 +1,14 @@
-import { useConfirm } from '@/components/buffalobuilt/confirm-dialog';
+﻿import { useConfirm } from '@/components/buffalobuilt/confirm-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
+import { formatCents } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
+import { PROPOSAL_STATUS_STYLES } from '@/types/proposals';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowLeft, Check, Download, FileText, Send, Trash2, X } from 'lucide-react';
 import { Fragment } from 'react';
@@ -44,22 +46,11 @@ interface Props {
     allowedTransitions: string[];
 }
 
-const STATUS_STYLES: Record<string, string> = {
-    draft: 'bg-muted text-muted-foreground',
-    sent: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
-    accepted: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
-    rejected: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
-};
-
 const TRANSITION_META: Record<string, { label: string; icon: React.ReactNode; variant: 'default' | 'destructive' | 'outline' }> = {
     sent: { label: 'Mark Sent', icon: <Send className="h-4 w-4" />, variant: 'default' },
     accepted: { label: 'Mark Accepted', icon: <Check className="h-4 w-4" />, variant: 'default' },
     rejected: { label: 'Mark Rejected', icon: <X className="h-4 w-4" />, variant: 'destructive' },
 };
-
-function formatMoney(cents: number): string {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
-}
 
 export default function ProposalShow({ proposal, lines, allowedTransitions }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
@@ -118,7 +109,7 @@ export default function ProposalShow({ proposal, lines, allowedTransitions }: Pr
                                 </Link>
                             </Button>
                             <h1 className="text-foreground text-2xl font-semibold">{proposal.number}</h1>
-                            <Badge className={cn('capitalize', STATUS_STYLES[proposal.status])}>{proposal.status}</Badge>
+                            <Badge className={cn('capitalize', PROPOSAL_STATUS_STYLES[proposal.status])}>{proposal.status}</Badge>
                         </div>
                         <p className="text-muted-foreground mt-1 ml-10 text-sm">
                             {proposal.project?.name}
@@ -198,11 +189,11 @@ export default function ProposalShow({ proposal, lines, allowedTransitions }: Pr
                                                         <td className="px-4 py-2 text-right tabular-nums">{l.qty ?? '—'}</td>
                                                         <td className="text-muted-foreground px-4 py-2">{l.unit ?? '—'}</td>
                                                         <td className="px-4 py-2 text-right tabular-nums">
-                                                            {l.unit_price_cents !== null ? formatMoney(l.unit_price_cents) : '—'}
+                                                            {l.unit_price_cents !== null ? formatCents(l.unit_price_cents) : '—'}
                                                         </td>
                                                         <td className="px-4 py-2 text-right font-medium tabular-nums">
                                                             {l.total_cents !== null ? (
-                                                                formatMoney(l.total_cents)
+                                                                formatCents(l.total_cents)
                                                             ) : (
                                                                 <span className="text-amber-600 dark:text-amber-400">TBD</span>
                                                             )}
@@ -216,7 +207,7 @@ export default function ProposalShow({ proposal, lines, allowedTransitions }: Pr
                                                 Proposal Total
                                             </td>
                                             <td className="px-4 py-2.5 text-right text-base font-semibold tabular-nums">
-                                                {formatMoney(proposal.total_cents)}
+                                                {formatCents(proposal.total_cents)}
                                             </td>
                                         </tr>
                                     </tbody>

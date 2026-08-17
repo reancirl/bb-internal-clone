@@ -17,14 +17,23 @@ class ProposalController extends Controller
 {
     public function index(Request $request): Response
     {
-        $status = $request->string('status')->toString();
+        // Non-string (array) params and unknown statuses are treated as "no
+        // filter" so the page never claims a filter it did not apply.
+        $rawStatus = $request->query('status');
+        $status = is_string($rawStatus) && in_array($rawStatus, ProjectProposal::STATUSES, true) ? $rawStatus : null;
+
+        $perPage = $request->integer('per_page', 10);
+        if (! in_array($perPage, [10, 20, 30], true)) {
+            $perPage = 10;
+        }
 
         $proposals = ProjectProposal::query()
             ->with('project:id,name,client_name')
-            ->when(in_array($status, ProjectProposal::STATUSES, true), fn ($q) => $q->where('status', $status))
+            ->when($status !== null, fn ($q) => $q->where('status', $status))
             ->orderByDesc('id')
-            ->get()
-            ->map(fn (ProjectProposal $p) => [
+            ->paginate($perPage)
+            ->withQueryString()
+            ->through(fn (ProjectProposal $p) => [
                 'id' => $p->id,
                 'number' => $p->number,
                 'title' => $p->title,
@@ -39,7 +48,7 @@ class ProposalController extends Controller
 
         return Inertia::render('admin/proposals/index', [
             'proposals' => $proposals,
-            'filters' => ['status' => $status ?: null],
+            'filters' => ['status' => $status, 'per_page' => $perPage],
             'statuses' => ProjectProposal::STATUSES,
             'projects' => Project::query()->orderBy('name')->get(['id', 'name', 'client_name']),
         ]);
@@ -48,6 +57,10 @@ class ProposalController extends Controller
     /**
      * Snapshot the project's current takeoff estimate into a draft proposal.
      * Later price-book or takeoff edits never rewrite an existing proposal.
+     *
+     * Every takeoff line is kept — a line with a broken formula, a missing
+     * dimension (qty 0), or no price appears as TBD rather than being
+     * silently dropped from a customer-facing document.
      */
     public function store(Project $project, Request $request): RedirectResponse
     {
@@ -55,44 +68,53 @@ class ProposalController extends Controller
         $costing = new TakeoffCosting;
         $dimensions = $project->dimensionValues();
 
-        $proposal = DB::transaction(function () use ($project, $request, $costing, $dimensions) {
+        $rows = [];
+        $total = 0;
+        $tbdCount = 0;
+        $sort = 1;
+        foreach ($project->takeoffLines as $line) {
+            $calc = $costing->computeLine($line, $dimensions);
+
+            // A quantity of 0 means a referenced dimension was never filled
+            // in — treat the line as unpriced instead of quoting a firm $0.
+            $priced = $calc['qty'] !== null && $calc['qty'] > 0 && $calc['cost'] !== null;
+            $lineCents = $priced ? TakeoffCosting::toCents($calc['cost']) : null;
+            $total += $lineCents ?? 0;
+            $tbdCount += $priced ? 0 : 1;
+
+            $rows[] = [
+                'category' => $line->category,
+                'item' => $line->item,
+                'qty' => $calc['qty'],
+                'unit' => $line->unit,
+                'unit_price_cents' => TakeoffCosting::toCents($calc['unit_price']),
+                'total_cents' => $lineCents,
+                'sort' => $sort++,
+            ];
+        }
+
+        // Retry absorbs the number-generation race: two concurrent creates can
+        // still compute the same number; the loser's unique-constraint failure
+        // rolls back and the next attempt reads the winner's number.
+        $proposal = retry(3, fn () => DB::transaction(function () use ($project, $request, $rows, $total) {
             $proposal = $project->proposals()->create([
                 'number' => ProjectProposal::nextNumber((int) now()->format('Y')),
                 'status' => ProjectProposal::STATUS_DRAFT,
+                'total_cents' => $total,
                 'valid_until' => now()->addDays(30)->toDateString(),
                 'created_by_user_id' => $request->user()->id,
             ]);
-
-            $total = 0;
-            $sort = 1;
-            foreach ($project->takeoffLines as $line) {
-                $calc = $costing->computeLine($line, $dimensions);
-                if ($calc['qty'] === null && $calc['cost'] === null) {
-                    continue; // nothing measurable to put in front of a customer
-                }
-
-                $lineCents = TakeoffCosting::toCents($calc['cost']);
-                $total += $lineCents ?? 0;
-
-                $proposal->lines()->create([
-                    'category' => $line->category,
-                    'item' => $line->item,
-                    'qty' => $calc['qty'],
-                    'unit' => $line->unit,
-                    'unit_price_cents' => TakeoffCosting::toCents($calc['unit_price']),
-                    'total_cents' => $lineCents,
-                    'sort' => $sort++,
-                ]);
-            }
-
-            $proposal->update(['total_cents' => $total]);
+            $proposal->lines()->createMany($rows);
 
             return $proposal;
-        });
+        }), 100);
 
-        return redirect()
-            ->route('admin.proposals.show', $proposal)
-            ->with('success', "Proposal {$proposal->number} created from the current estimate.");
+        $message = "Proposal {$proposal->number} created from the current estimate.";
+        if ($tbdCount > 0) {
+            $message .= " {$tbdCount} line".($tbdCount === 1 ? ' needs' : 's need').' pricing before sending.';
+        }
+
+        return redirect()->route('admin.proposals.show', $proposal)->with('success', $message);
     }
 
     public function show(ProjectProposal $proposal): Response
@@ -116,7 +138,7 @@ class ProposalController extends Controller
                 'created_by' => $proposal->createdBy?->name,
                 'project' => $proposal->project?->only(['id', 'name', 'client_name', 'address']),
             ],
-            'lines' => $proposal->lines()->orderBy('sort')->get()->map(fn ($l) => [
+            'lines' => $proposal->lines->map(fn ($l) => [
                 'id' => $l->id,
                 'category' => $l->category,
                 'item' => $l->item,
@@ -180,7 +202,7 @@ class ProposalController extends Controller
 
     public function pdf(ProjectProposal $proposal): \Illuminate\Http\Response
     {
-        $proposal->load(['project:id,name,client_name,address', 'lines' => fn ($q) => $q->orderBy('sort')]);
+        $proposal->load(['project:id,name,client_name,address', 'lines']);
 
         return Pdf::loadView('pdf.proposal', ['proposal' => $proposal])
             ->setPaper('letter')

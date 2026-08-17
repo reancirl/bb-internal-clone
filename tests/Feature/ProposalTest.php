@@ -215,13 +215,114 @@ class ProposalTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/proposals')
             ->assertOk()
-            ->assertInertia(fn ($page) => $page->component('admin/proposals/index')->has('proposals', 2));
+            ->assertInertia(fn ($page) => $page->component('admin/proposals/index')->has('proposals.data', 2));
 
         $this->actingAs($admin)
             ->get('/admin/proposals?status=sent')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->has('proposals', 1)
-                ->where('proposals.0.status', 'sent'));
+                ->has('proposals.data', 1)
+                ->where('proposals.data.0.status', 'sent'));
+    }
+
+    public function test_invalid_status_filter_is_ignored_not_claimed(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $project = $this->makeProjectWithEstimate();
+        $this->actingAs($admin)->post("/admin/projects/{$project->id}/proposals");
+
+        // Unknown value: listed unfiltered, and filters.status reports null so
+        // the UI never claims a filter it did not apply.
+        $this->actingAs($admin)
+            ->get('/admin/proposals?status=Draft')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('filters.status', null)
+                ->has('proposals.data', 1));
+
+        // Array value must not 500.
+        $this->actingAs($admin)->get('/admin/proposals?status[]=sent')->assertOk();
+    }
+
+    public function test_formula_error_lines_are_kept_as_tbd_not_dropped(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $project = $this->makeProjectWithEstimate();
+        $price = PriceItem::factory()->create(['fast_price' => 40.00]);
+        TakeoffLine::factory()->for($project)->create([
+            'category' => 'FRAMING',
+            'item' => 'Custom trusses',
+            'formula' => 'house_sqftt', // typo — evaluator throws
+            'price_item_id' => $price->id,
+        ]);
+
+        $this->actingAs($admin)->post("/admin/projects/{$project->id}/proposals");
+
+        $proposal = ProjectProposal::first();
+        $line = $proposal->lines()->where('item', 'Custom trusses')->first();
+        $this->assertNotNull($line, 'Broken-formula line must appear on the proposal, not be silently dropped');
+        $this->assertNull($line->qty);
+        $this->assertNull($line->total_cents);
+        $this->assertSame(125000, $proposal->total_cents);
+    }
+
+    public function test_zero_quantity_lines_are_tbd_not_firm_zero_dollars(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $project = $this->makeProjectWithEstimate();
+        $project->update(['roof_sqft' => 0]); // dimension never filled in
+        $price = PriceItem::factory()->create(['fast_price' => 5.00]);
+        TakeoffLine::factory()->for($project)->create([
+            'category' => 'ROOFING',
+            'item' => 'Shingles',
+            'formula' => 'roof_sqft',
+            'waste_pct' => 0,
+            'price_item_id' => $price->id,
+        ]);
+
+        $this->actingAs($admin)->post("/admin/projects/{$project->id}/proposals");
+
+        $line = ProjectProposal::first()->lines()->where('item', 'Shingles')->first();
+        $this->assertNull($line->total_cents, 'Unfilled-dimension line must read TBD, not a firm $0.00');
+    }
+
+    public function test_number_sequence_survives_past_999(): void
+    {
+        $year = now()->year;
+        $project = Project::factory()->create();
+        foreach ([999, 1000] as $seq) {
+            ProjectProposal::create([
+                'project_id' => $project->id,
+                'number' => sprintf('PROP-%d-%03d', $year, $seq),
+            ]);
+        }
+
+        // Lexicographic max would be "...-999" and recompute 1000 forever.
+        $this->assertSame("PROP-{$year}-1001", ProjectProposal::nextNumber($year));
+    }
+
+    public function test_project_with_sent_proposal_cannot_be_deleted(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $project = $this->makeProjectWithEstimate();
+        $this->actingAs($admin)->post("/admin/projects/{$project->id}/proposals");
+        $proposal = ProjectProposal::first();
+        $this->actingAs($admin)->post("/admin/proposals/{$proposal->id}/transition", ['status' => 'sent']);
+
+        $this->actingAs($admin)->delete("/projects/{$project->id}")->assertSessionHas('error');
+        $this->assertNotNull(Project::find($project->id));
+        $this->assertNotNull(ProjectProposal::find($proposal->id));
+    }
+
+    public function test_project_with_only_draft_proposals_can_be_deleted(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $project = $this->makeProjectWithEstimate();
+        $this->actingAs($admin)->post("/admin/projects/{$project->id}/proposals");
+
+        $this->actingAs($admin)->delete("/projects/{$project->id}");
+
+        $this->assertNull(Project::find($project->id));
+        $this->assertDatabaseCount('project_proposals', 0);
     }
 }
