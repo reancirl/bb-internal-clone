@@ -55,6 +55,7 @@ class DatabaseSeeder extends Seeder
         $this->call(DirectorySeeder::class);
         $this->call(PriceBookSeeder::class);
         $this->call(ProjectSeeder::class);
+        $this->call(DemoProjectSeeder::class);
         $this->call(LeadSeeder::class);
         $this->call(DecisionCatalogSeeder::class);
         $this->call(BudgetCatalogSeeder::class);
