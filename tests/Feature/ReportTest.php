@@ -96,6 +96,31 @@ class ReportTest extends TestCase
                 ->where('filters.to', '2026-08-07'));
     }
 
+    public function test_time_summary_all_time_range_includes_everything(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $worker = User::factory()->create(['role' => User::ROLE_CREW]);
+
+        TimeCard::factory()->for($worker)->create([
+            'clock_in_at' => '2026-01-05 08:00:00',
+            'clock_out_at' => '2026-01-05 09:00:00',
+        ]);
+        TimeCard::factory()->for($worker)->create([
+            'clock_in_at' => now()->subYears(2),
+            'clock_out_at' => now()->subYears(2)->addHours(2),
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/reports/time-summary?range=all')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('rows', 1)
+                ->where('rows.0.cards_count', 2)
+                ->where('rows.0.total_minutes', 180)
+                ->where('filters.from', null)
+                ->where('filters.to', null));
+    }
+
     public function test_time_summary_csv_export(): void
     {
         $admin = User::factory()->admin()->create();

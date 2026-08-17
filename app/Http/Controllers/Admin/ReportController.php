@@ -21,8 +21,8 @@ class ReportController extends Controller
         return Inertia::render('admin/reports/time-summary', [
             'rows' => $this->timeSummaryRows($from, $to),
             'filters' => [
-                'from' => $from->toDateString(),
-                'to' => $to->toDateString(),
+                'from' => $from?->toDateString(),
+                'to' => $to?->toDateString(),
             ],
         ]);
     }
@@ -31,7 +31,9 @@ class ReportController extends Controller
     {
         [$from, $to] = $this->range($request);
         $rows = $this->timeSummaryRows($from, $to);
-        $filename = 'time-summary-'.$from->toDateString().'-to-'.$to->toDateString().'.csv';
+        $filename = $from === null
+            ? 'time-summary-all-time.csv'
+            : 'time-summary-'.$from->toDateString().'-to-'.$to->toDateString().'.csv';
 
         return response()->streamDownload(function () use ($rows) {
             $out = fopen('php://output', 'w');
@@ -83,10 +85,16 @@ class ReportController extends Controller
     }
 
     /**
-     * @return array{0: Carbon, 1: Carbon}
+     * Both null means no date restriction (all time).
+     *
+     * @return array{0: Carbon|null, 1: Carbon|null}
      */
     private function range(Request $request): array
     {
+        if ($request->query('range') === 'all') {
+            return [null, null];
+        }
+
         $from = $request->filled('from')
             ? Carbon::parse($request->string('from'))->startOfDay()
             : Carbon::now()->startOfWeek();
@@ -104,11 +112,11 @@ class ReportController extends Controller
      *
      * @return Collection<int, array{user_id: int, name: string, role: string, cards_count: int, open_cards_count: int, total_minutes: int}>
      */
-    private function timeSummaryRows(Carbon $from, Carbon $to): Collection
+    private function timeSummaryRows(?Carbon $from, ?Carbon $to): Collection
     {
         return TimeCard::query()
             ->with('user:id,name,role')
-            ->whereBetween('clock_in_at', [$from, $to])
+            ->when($from !== null && $to !== null, fn ($q) => $q->whereBetween('clock_in_at', [$from, $to]))
             ->get()
             ->filter(fn (TimeCard $c) => $c->user !== null)
             ->groupBy('user_id')
