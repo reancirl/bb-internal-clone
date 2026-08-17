@@ -1,3 +1,4 @@
+import { useConfirm } from '@/components/buffalobuilt/confirm-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowLeft, Check, Download, FileText, Send, Trash2, X } from 'lucide-react';
-import { Fragment, useState } from 'react';
+import { Fragment } from 'react';
 
 interface ProposalLine {
     id: number;
@@ -68,7 +69,7 @@ export default function ProposalShow({ proposal, lines, allowedTransitions }: Pr
     ];
 
     const isDraft = proposal.status === 'draft';
-    const [confirmDelete, setConfirmDelete] = useState(false);
+    const [confirm, confirmDialog] = useConfirm();
 
     const form = useForm({
         title: proposal.title,
@@ -86,8 +87,16 @@ export default function ProposalShow({ proposal, lines, allowedTransitions }: Pr
         router.post(`/admin/proposals/${proposal.id}/transition`, { status }, { preserveScroll: true });
     };
 
-    const destroy = () => {
-        router.delete(`/admin/proposals/${proposal.id}`);
+    const destroy = async () => {
+        const confirmed = await confirm({
+            title: `Delete ${proposal.number}?`,
+            description: 'This draft proposal and all its line items will be permanently deleted.',
+            confirmLabel: 'Delete proposal',
+            destructive: true,
+        });
+        if (confirmed) {
+            router.delete(`/admin/proposals/${proposal.id}`);
+        }
     };
 
     const unpricedCount = lines.filter((l) => l.total_cents === null).length;
@@ -97,6 +106,7 @@ export default function ProposalShow({ proposal, lines, allowedTransitions }: Pr
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={proposal.number} />
+            {confirmDialog}
 
             <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -133,21 +143,11 @@ export default function ProposalShow({ proposal, lines, allowedTransitions }: Pr
                                 </Button>
                             );
                         })}
-                        {isDraft &&
-                            (confirmDelete ? (
-                                <div className="flex items-center gap-1">
-                                    <Button variant="destructive" size="sm" onClick={destroy}>
-                                        Confirm delete
-                                    </Button>
-                                    <Button variant="outline" size="sm" onClick={() => setConfirmDelete(false)}>
-                                        Cancel
-                                    </Button>
-                                </div>
-                            ) : (
-                                <Button variant="outline" size="sm" onClick={() => setConfirmDelete(true)}>
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            ))}
+                        {isDraft && (
+                            <Button variant="outline" size="sm" onClick={destroy} title="Delete draft">
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        )}
                     </div>
                 </div>
 
@@ -169,9 +169,9 @@ export default function ProposalShow({ proposal, lines, allowedTransitions }: Pr
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="p-0">
-                            <div className="overflow-x-auto">
+                            <div className="max-h-[65vh] overflow-auto">
                                 <table className="w-full min-w-[36rem] text-sm">
-                                    <thead>
+                                    <thead className="bg-card sticky top-0 z-10">
                                         <tr className="text-muted-foreground border-b text-xs">
                                             <th className="px-4 py-2 text-left font-medium">Item</th>
                                             <th className="px-4 py-2 text-right font-medium">Qty</th>
@@ -211,7 +211,7 @@ export default function ProposalShow({ proposal, lines, allowedTransitions }: Pr
                                                 </Fragment>
                                             );
                                         })}
-                                        <tr className="bg-muted/40 border-t-2">
+                                        <tr className="bg-muted sticky bottom-0 z-10 border-t-2">
                                             <td colSpan={4} className="px-4 py-2.5 text-right font-medium">
                                                 Proposal Total
                                             </td>
