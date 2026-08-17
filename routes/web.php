@@ -123,6 +123,7 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('takeoff-lines/{takeoffLine}', [TakeoffLineController::class, 'destroy'])->name('takeoff-lines.destroy');
 
         Route::post('jobs', [JobController::class, 'store'])->name('jobs.store');
+        Route::get('jobs/{job}/shift-preview', [JobController::class, 'shiftPreview'])->name('jobs.shift-preview');
         Route::put('jobs/{job}', [JobController::class, 'update'])->name('jobs.update');
         Route::delete('jobs/{job}', [JobController::class, 'destroy'])->name('jobs.destroy');
     });

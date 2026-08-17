@@ -40,7 +40,9 @@ function JobCard({ job, statuses }: { job: JobRow; statuses: JobStatus[] }) {
                 {job.notes && <p className="text-muted-foreground mt-1 text-xs">{job.notes}</p>}
             </div>
             <div className="flex items-center gap-3">
-                <span className="text-muted-foreground text-sm tabular-nums">{formatDate(job.scheduled_date)}</span>
+                <span className="text-muted-foreground text-sm tabular-nums">
+                    {job.duration_days > 1 ? `${formatDate(job.scheduled_date)} – ${formatDate(job.end_date)}` : formatDate(job.scheduled_date)}
+                </span>
                 <Select value={job.status} onValueChange={setStatus}>
                     <SelectTrigger className="w-36">
                         <SelectValue />
@@ -59,7 +61,8 @@ function JobCard({ job, statuses }: { job: JobRow; statuses: JobStatus[] }) {
 }
 
 export default function JobsIndex({ today, jobs, statuses }: PageProps) {
-    const todays = jobs.filter((j) => j.scheduled_date === today);
+    // A multi-day job counts as "today" from its start date through its end.
+    const todays = jobs.filter((j) => j.scheduled_date <= today && j.end_date >= today);
     const upcoming = jobs.filter((j) => j.scheduled_date > today);
 
     return (

@@ -9,11 +9,35 @@ export interface JobRow {
     id: number;
     project_id: number;
     project_name: string | null;
+    predecessor_job_id: number | null;
     title: string | null;
     scheduled_date: string; // YYYY-MM-DD
+    duration_days: number;
+    end_date: string; // YYYY-MM-DD, scheduled_date + duration_days - 1
     status: JobStatus;
+    trade: string | null;
     notes: string | null;
+    has_successors: boolean;
     crew: JobCrew[];
+}
+
+// Lean job list for the predecessor picker (all non-canceled jobs).
+export interface JobOption {
+    id: number;
+    project_id: number;
+    title: string | null;
+    scheduled_date: string;
+    end_date: string;
+    status: JobStatus;
+}
+
+// One row of the shift-preview response for the confirm dialog.
+export interface ShiftPreviewRow {
+    id: number;
+    title: string | null;
+    old_date: string;
+    new_date: string;
+    status: JobStatus;
 }
 
 export interface ProjectOption {

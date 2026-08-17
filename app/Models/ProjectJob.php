@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Database\Factories\ProjectJobFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProjectJob extends Model
 {
@@ -30,9 +32,12 @@ class ProjectJob extends Model
 
     protected $fillable = [
         'project_id',
+        'predecessor_job_id',
         'title',
         'scheduled_date',
+        'duration_days',
         'status',
+        'trade',
         'notes',
     ];
 
@@ -40,7 +45,24 @@ class ProjectJob extends Model
     {
         return [
             'scheduled_date' => 'date',
+            'duration_days' => 'integer',
         ];
+    }
+
+    /**
+     * Last day of the job: scheduled_date + duration_days - 1.
+     */
+    public function endDate(): Carbon
+    {
+        return $this->scheduled_date->copy()->addDays(max(1, $this->duration_days) - 1);
+    }
+
+    /**
+     * Only not-yet-started jobs move when a predecessor's dates change.
+     */
+    public function isShiftable(): bool
+    {
+        return $this->status === self::STATUS_SCHEDULED;
     }
 
     /**
@@ -49,6 +71,22 @@ class ProjectJob extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    /**
+     * @return BelongsTo<ProjectJob, $this>
+     */
+    public function predecessor(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'predecessor_job_id');
+    }
+
+    /**
+     * @return HasMany<ProjectJob, $this>
+     */
+    public function successors(): HasMany
+    {
+        return $this->hasMany(self::class, 'predecessor_job_id');
     }
 
     /**

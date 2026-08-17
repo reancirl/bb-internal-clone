@@ -16,9 +16,12 @@ class ProjectJobFactory extends Factory
     {
         return [
             'project_id' => Project::factory(),
+            'predecessor_job_id' => null,
             'title' => fake()->randomElement(['Framing', 'Foundation pour', 'Roofing', 'Drywall', 'Punch list']),
             'scheduled_date' => Carbon::today()->toDateString(),
+            'duration_days' => 1,
             'status' => ProjectJob::STATUS_SCHEDULED,
+            'trade' => null,
             'notes' => null,
         ];
     }
