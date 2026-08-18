@@ -53,7 +53,9 @@ class ScheduleDependencyTest extends TestCase
     public function test_admin_can_create_job_with_predecessor_duration_and_trade(): void
     {
         $project = Project::factory()->create();
-        $foundation = ProjectJob::factory()->create(['project_id' => $project->id]);
+        // Pin the title: the factory picks random titles including "Framing",
+        // which would collide with the firstWhere lookup below.
+        $foundation = ProjectJob::factory()->create(['project_id' => $project->id, 'title' => 'Foundation']);
 
         $this->actingAs($this->admin())->post('/jobs', [
             'project_id' => $project->id,
