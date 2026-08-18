@@ -16,6 +16,7 @@ class TimeCard extends Model
         'user_id',
         'clock_in_at',
         'clock_out_at',
+        'reminder_sent_at',
         'notes',
     ];
 
@@ -24,6 +25,7 @@ class TimeCard extends Model
         return [
             'clock_in_at' => 'datetime',
             'clock_out_at' => 'datetime',
+            'reminder_sent_at' => 'datetime',
         ];
     }
 

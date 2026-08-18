@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Lead;
+use App\Notifications\LeadReceived;
+use App\Support\Notify;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -31,6 +33,8 @@ class LeadController extends Controller
             'source' => 'website',
             'submitted_at' => $validated['createdAt'],
         ]);
+
+        Notify::admins(new LeadReceived($lead));
 
         return response()->json([
             'success' => true,

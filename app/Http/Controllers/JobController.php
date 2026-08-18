@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Project;
 use App\Models\ProjectJob;
 use App\Models\User;
+use App\Notifications\JobAssigned;
+use App\Support\Notify;
 use App\Support\ScheduleShifter;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -91,6 +93,8 @@ class JobController extends Controller
         $job = ProjectJob::create(Arr::except($data, ['crew', 'shift_successors']));
         $job->crew()->sync($data['crew'] ?? []);
 
+        $this->notifyNewlyAssigned($job, [], $data['crew'] ?? []);
+
         return back()->with('success', 'Job scheduled.');
     }
 
@@ -98,9 +102,12 @@ class JobController extends Controller
     {
         $data = $this->validateData($request, $job);
 
+        $previousCrew = $job->crew()->pluck('users.id')->all();
         $oldEnd = $job->endDate();
         $job->update(Arr::except($data, ['crew', 'shift_successors']));
         $job->crew()->sync($data['crew'] ?? []);
+
+        $this->notifyNewlyAssigned($job, $previousCrew, $data['crew'] ?? []);
 
         $shifted = 0;
         if ($request->boolean('shift_successors')) {
@@ -162,6 +169,24 @@ class JobController extends Controller
         $job->update(['status' => $data['status']]);
 
         return back();
+    }
+
+    /**
+     * Email crew members who were just added to the job — not people who were
+     * already on it, so routine edits don't re-notify the whole crew.
+     *
+     * @param  list<int>  $previousIds
+     * @param  list<int|string>  $currentIds
+     */
+    private function notifyNewlyAssigned(ProjectJob $job, array $previousIds, array $currentIds): void
+    {
+        $addedIds = array_diff(array_map('intval', $currentIds), $previousIds);
+        if ($addedIds === []) {
+            return;
+        }
+
+        $job->load('project:id,name');
+        Notify::users(User::query()->whereIn('id', $addedIds)->get(), new JobAssigned($job));
     }
 
     /**

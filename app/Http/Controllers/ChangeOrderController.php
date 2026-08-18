@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\BudgetSection;
 use App\Models\ChangeOrder;
 use App\Models\Project;
+use App\Notifications\ChangeOrderDecided;
+use App\Support\Notify;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -79,6 +81,8 @@ class ChangeOrderController extends Controller
         }
 
         $verb = $data['status'] === ChangeOrder::STATUS_APPROVED ? 'approved' : 'declined';
+
+        Notify::admins(new ChangeOrderDecided($changeOrder->load('project:id,name')), except: $request->user());
 
         return back()->with('success', $changeOrder->label().' '.$verb.'.');
     }

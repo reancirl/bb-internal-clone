@@ -7,6 +7,7 @@ import DeleteUser from '@/components/delete-user';
 import HeadingSmall from '@/components/heading-small';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
@@ -25,6 +26,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
     const { data, setData, patch, errors, processing, recentlySuccessful } = useForm({
         name: auth.user.name,
         email: auth.user.email,
+        email_notifications: auth.user.email_notifications,
     });
 
     const submit: FormEventHandler = (e) => {
@@ -96,6 +98,21 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                                 )}
                             </div>
                         )}
+
+                        <div className="flex items-start gap-3">
+                            <Checkbox
+                                id="email_notifications"
+                                checked={data.email_notifications}
+                                onCheckedChange={(checked) => setData('email_notifications', checked === true)}
+                            />
+                            <div className="grid gap-0.5">
+                                <Label htmlFor="email_notifications">Email notifications</Label>
+                                <p className="text-muted-foreground text-sm">
+                                    Get emailed about job assignments, new leads, change orders, and clock-out reminders. Turn off to stop all
+                                    notification emails.
+                                </p>
+                            </div>
+                        </div>
 
                         <div className="flex items-center gap-4">
                             <Button disabled={processing}>Save</Button>
