@@ -115,6 +115,9 @@
     --sidebar-accent-foreground: hsl(222, 47%, 11%);
     --sidebar-border: hsl(215, 19%, 91%);
     --sidebar-ring: hsl(222, 47%, 11%);
+    /* Tell the browser the page scheme so native widgets (date-picker
+       calendar icons, time pickers, scrollbars, autofill) match the theme. */
+    color-scheme: light;
 }
 
 .dark {
@@ -152,6 +155,9 @@
     --sidebar-accent-foreground: hsl(0, 0%, 97%);
     --sidebar-border: hsl(222, 30%, 16%);
     --sidebar-ring: hsl(0, 0%, 97%);
+    /* Native widgets (date-picker calendar icons, etc.) render their dark
+       variants — without this they stay dark-on-dark and disappear. */
+    color-scheme: dark;
 }
 
 @layer base {
