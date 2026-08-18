@@ -149,6 +149,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::patch('leads/{lead}', [LeadController::class, 'update'])->name('leads.update');
     Route::delete('leads/{lead}', [LeadController::class, 'destroy'])->name('leads.destroy');
     Route::post('leads/{lead}/activities', [LeadController::class, 'storeActivity'])->name('leads.activities.store');
+    Route::get('leads/{lead}/convert', [LeadController::class, 'convertForm'])->name('leads.convert.form');
     Route::post('leads/{lead}/convert', [LeadController::class, 'convert'])->name('leads.convert');
 
     // M2 — Labor & Equipment rate tables

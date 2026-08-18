@@ -6,6 +6,7 @@ use Database\Factories\ProjectFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Project extends Model
 {
@@ -57,6 +58,7 @@ class Project extends Model
         'client_name',
         'address',
         'status',
+        'start_date',
         'contract_price_cents',
         'house_sqft', 'garage_sqft', 'roof_sqft', 'valley_lft', 'eve_lft', 'rake_lft',
         'ext_wall_lft', 'int_wall_lft', 'ext_wall_sqft', 'int_wall_sqft', 'ceiling_sqft',
@@ -67,6 +69,7 @@ class Project extends Model
     {
         return [
             ...array_fill_keys(self::DIMENSION_KEYS, 'decimal:2'),
+            'start_date' => 'date',
             'contract_price_cents' => 'integer',
         ];
     }
@@ -124,6 +127,17 @@ class Project extends Model
     public function changeOrders(): HasMany
     {
         return $this->hasMany(ChangeOrder::class)->orderBy('number');
+    }
+
+    /**
+     * The lead this project was converted from, if any. The link lives on the
+     * lead (converted_project_id), so there is a single source of truth.
+     *
+     * @return HasOne<Lead, $this>
+     */
+    public function lead(): HasOne
+    {
+        return $this->hasOne(Lead::class, 'converted_project_id');
     }
 
     /**

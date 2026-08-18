@@ -6,8 +6,11 @@ use App\Models\Lead;
 use App\Models\LeadActivity;
 use App\Models\Project;
 use App\Models\User;
+use App\Support\TakeoffTemplate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -161,34 +164,102 @@ class LeadController extends Controller
         return back()->with('success', 'Activity logged.');
     }
 
+    /**
+     * Guided conversion form, prefilled from the lead. Already-converted leads
+     * go straight to their project rather than offering a second conversion.
+     */
+    public function convertForm(Lead $lead): Response|RedirectResponse
+    {
+        if ($lead->converted_project_id !== null) {
+            return redirect()->route('projects.show', $lead->converted_project_id);
+        }
+
+        $client = trim($lead->first_name.' '.$lead->last_name);
+
+        return Inertia::render('admin/leads/convert', [
+            'lead' => [
+                'id' => $lead->id,
+                'client_name' => $client,
+                'email' => $lead->email,
+                'phone' => $lead->phone,
+                'build_location' => $lead->build_location,
+                'project_details' => $lead->project_details,
+                'estimated_value_cents' => $lead->estimated_value_cents,
+            ],
+            'suggestedName' => $client.' — '.($lead->build_location ?: 'New build'),
+            'dimensionLabels' => Project::DIMENSIONS,
+            'statuses' => Project::STATUSES,
+            'takeoffLineCount' => count(TakeoffTemplate::lines()),
+        ]);
+    }
+
+    /**
+     * Create the project from the wizard payload. Every field beyond the name
+     * is optional, so the one-click path (name only) still works.
+     */
     public function convert(Request $request, Lead $lead): RedirectResponse
     {
         if ($lead->converted_project_id !== null) {
             return redirect()->route('projects.show', $lead->converted_project_id);
         }
 
-        $project = Project::create([
-            'name' => trim($lead->first_name.' '.$lead->last_name).' — '.($lead->build_location ?: 'New build'),
-            'client_name' => trim($lead->first_name.' '.$lead->last_name),
-            'address' => $lead->build_location ?? '',
-            'status' => Project::STATUS_ACTIVE,
+        $client = trim($lead->first_name.' '.$lead->last_name);
+
+        $data = $request->validate([
+            'name' => ['sometimes', 'required', 'string', 'max:255', Rule::unique('projects', 'name')],
+            'client_name' => 'nullable|string|max:255',
+            'address' => 'nullable|string|max:255',
+            'status' => ['sometimes', Rule::in(Project::STATUSES)],
+            'start_date' => 'nullable|date',
+            'contract_price_cents' => 'nullable|integer|min:0',
+            'generate_takeoff' => 'boolean',
+            ...array_fill_keys(
+                array_map(fn (string $key) => 'dimensions.'.$key, Project::DIMENSION_KEYS),
+                'nullable|numeric|min:0|max:9999999',
+            ),
         ]);
 
-        $lead->update(['converted_project_id' => $project->id]);
+        $project = DB::transaction(function () use ($request, $lead, $client, $data) {
+            $project = Project::create([
+                'name' => $data['name'] ?? $client.' — '.($lead->build_location ?: 'New build'),
+                'client_name' => $data['client_name'] ?? $client,
+                'address' => $data['address'] ?? $lead->build_location ?? '',
+                'status' => $data['status'] ?? Project::STATUS_ACTIVE,
+                'start_date' => $data['start_date'] ?? null,
+                'contract_price_cents' => $data['contract_price_cents'] ?? null,
+                ...array_filter(
+                    $data['dimensions'] ?? [],
+                    fn ($value) => $value !== null && $value !== '',
+                ),
+            ]);
 
-        $lead->activities()->create([
-            'user_id' => $request->user()->id,
-            'activity_type' => 'note',
-            'title' => 'Converted to project',
-            'description' => 'Project "'.$project->name.'" created from this lead.',
-            'completed_at' => now(),
-        ]);
+            // Match ProjectController::store — a converted project should start
+            // from the same standard takeoff as a hand-created one.
+            if ($request->boolean('generate_takeoff', true)) {
+                $sort = 1;
+                foreach (TakeoffTemplate::lines() as $line) {
+                    $project->takeoffLines()->create([...$line, 'sort' => $sort++]);
+                }
+            }
+
+            $lead->update(['converted_project_id' => $project->id]);
+
+            $lead->activities()->create([
+                'user_id' => $request->user()->id,
+                'activity_type' => 'note',
+                'title' => 'Converted to project',
+                'description' => 'Project "'.$project->name.'" created from this lead.',
+                'completed_at' => now(),
+            ]);
+
+            return $project;
+        });
 
         return redirect()->route('projects.show', $project)->with('success', 'Project created from lead.');
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, array{id: int, name: string}>
+     * @return Collection<int, array{id: int, name: string}>
      */
     private function assignableUsers()
     {
