@@ -127,6 +127,14 @@ class Project extends Model
     }
 
     /**
+     * @return HasMany<PurchaseOrder, $this>
+     */
+    public function purchaseOrders(): HasMany
+    {
+        return $this->hasMany(PurchaseOrder::class);
+    }
+
+    /**
      * @return HasMany<ProjectProposal, $this>
      */
     public function proposals(): HasMany

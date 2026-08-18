@@ -16,6 +16,7 @@ use App\Http\Controllers\LeadController;
 use App\Http\Controllers\PriceBookController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProposalController;
+use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\SelectionController;
 use App\Http\Controllers\TakeoffLineController;
 use App\Http\Controllers\TimeCardController;
@@ -106,6 +107,14 @@ Route::middleware(['auth'])->group(function () {
         Route::post('change-orders/{changeOrder}/decide', [ChangeOrderController::class, 'decide'])->name('change-orders.decide');
         Route::post('change-orders/{changeOrder}/revert', [ChangeOrderController::class, 'revert'])->name('change-orders.revert');
         Route::delete('change-orders/{changeOrder}', [ChangeOrderController::class, 'destroy'])->name('change-orders.destroy');
+
+        // Purchase Orders (committed material costs per project)
+        Route::get('projects/{project}/purchase-orders', [PurchaseOrderController::class, 'index'])->name('purchase-orders.index');
+        Route::post('projects/{project}/purchase-orders', [PurchaseOrderController::class, 'store'])->name('purchase-orders.store');
+        Route::put('purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'update'])->name('purchase-orders.update');
+        Route::post('purchase-orders/{purchaseOrder}/transition', [PurchaseOrderController::class, 'transition'])->name('purchase-orders.transition');
+        Route::delete('purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'destroy'])->name('purchase-orders.destroy');
+        Route::get('purchase-orders/{purchaseOrder}/pdf', [PurchaseOrderController::class, 'pdf'])->name('purchase-orders.pdf');
     });
 
     // M7 — Jobs + Calendar (everyone views; assigned crew toggle status; admins manage)
