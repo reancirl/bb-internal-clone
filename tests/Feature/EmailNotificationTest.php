@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Console\Commands\RemindOpenTimeCards;
+use App\Models\Lead;
 use App\Models\Project;
 use App\Models\ProjectJob;
 use App\Models\TimeCard;
@@ -142,6 +143,45 @@ class EmailNotificationTest extends TestCase
 
         Notification::assertNothingSent();
         $this->assertNotNull($optedOutCard->fresh()->reminder_sent_at, 'Opted-out cards are stamped so they are not re-examined');
+    }
+
+    /**
+     * Notification::fake() never runs toMail(), so render every mail for real
+     * to catch template/format errors the trigger tests can't see.
+     */
+    public function test_every_mail_renders_with_real_subject_and_action(): void
+    {
+        $worker = User::factory()->create(['role' => User::ROLE_CREW]);
+        $project = Project::factory()->create(['name' => 'Staebler Residence']);
+
+        $lead = Lead::create([
+            'first_name' => 'John', 'last_name' => 'Smith', 'email' => 'john@example.com',
+            'phone' => '307-555-0142', 'build_location' => 'Gillette',
+            'project_details' => 'Custom home', 'source' => 'website', 'submitted_at' => now(),
+        ]);
+        $leadMail = (new LeadReceived($lead))->toMail($worker);
+        $this->assertSame('New lead: John Smith — Gillette', $leadMail->subject);
+        $this->assertStringContainsString('/admin/leads/'.$lead->id, $leadMail->actionUrl);
+
+        $job = ProjectJob::factory()->create([
+            'project_id' => $project->id, 'title' => 'Pour slab',
+            'scheduled_date' => '2026-08-20', 'duration_days' => 2,
+        ]);
+        $jobMail = (new JobAssigned($job->load('project')))->toMail($worker);
+        $this->assertSame("You're on: Pour slab", $jobMail->subject);
+        $this->assertStringContainsString('Staebler Residence', implode(' ', $jobMail->introLines));
+
+        $co = $project->changeOrders()->create([
+            'number' => 1, 'title' => 'Upgrade cabinets', 'price_cents' => 500000, 'status' => 'approved',
+        ]);
+        $coMail = (new ChangeOrderDecided($co->load('project')))->toMail($worker);
+        $this->assertStringContainsString('approved', $coMail->subject);
+        $this->assertStringContainsString('$5,000.00', implode(' ', $coMail->introLines));
+
+        $card = TimeCard::factory()->for($worker)->open()->create(['clock_in_at' => now()->subHours(11)]);
+        $cardMail = (new StillClockedIn($card))->toMail($worker);
+        $this->assertStringContainsString('Still clocked in since', $cardMail->subject);
+        $this->assertStringContainsString('11 hours', implode(' ', $cardMail->introLines));
     }
 
     public function test_user_can_opt_out_from_profile_settings(): void
