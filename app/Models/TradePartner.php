@@ -72,4 +72,12 @@ class TradePartner extends Model
     {
         return $this->hasMany(TradePartnerTrade::class);
     }
+
+    /**
+     * @return HasMany<BidResponse, $this>
+     */
+    public function bidResponses(): HasMany
+    {
+        return $this->hasMany(BidResponse::class);
+    }
 }
