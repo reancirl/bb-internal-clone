@@ -59,6 +59,7 @@ class Project extends Model
         'address',
         'status',
         'start_date',
+        'punch_signed_off_at',
         'contract_price_cents',
         'house_sqft', 'garage_sqft', 'roof_sqft', 'valley_lft', 'eve_lft', 'rake_lft',
         'ext_wall_lft', 'int_wall_lft', 'ext_wall_sqft', 'int_wall_sqft', 'ceiling_sqft',
@@ -70,6 +71,7 @@ class Project extends Model
         return [
             ...array_fill_keys(self::DIMENSION_KEYS, 'decimal:2'),
             'start_date' => 'date',
+            'punch_signed_off_at' => 'datetime',
             'contract_price_cents' => 'integer',
         ];
     }
@@ -146,6 +148,14 @@ class Project extends Model
     public function purchaseOrders(): HasMany
     {
         return $this->hasMany(PurchaseOrder::class);
+    }
+
+    /**
+     * @return HasMany<ProjectTask, $this>
+     */
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(ProjectTask::class);
     }
 
     /**

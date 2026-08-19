@@ -25,7 +25,19 @@ import {
     type TakeoffLineRow,
 } from '@/types/projects';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { AlertTriangle, Camera, ClipboardList, Download, NotebookPen, PackageCheck, Pencil, Plus, Trash2, Wallet } from 'lucide-react';
+import {
+    AlertTriangle,
+    Camera,
+    ClipboardCheck,
+    ClipboardList,
+    Download,
+    NotebookPen,
+    PackageCheck,
+    Pencil,
+    Plus,
+    Trash2,
+    Wallet,
+} from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
 interface PageProps {
@@ -212,6 +224,12 @@ export default function ProjectShow({ project, dimensionFields, lines, summary, 
                             <Link href={`/projects/${project.id}/photos`} prefetch>
                                 <Camera className="h-4 w-4" />
                                 Photos
+                            </Link>
+                        </Button>
+                        <Button variant="outline" className="gap-2" asChild>
+                            <Link href={`/projects/${project.id}/tasks`} prefetch>
+                                <ClipboardCheck className="h-4 w-4" />
+                                Tasks
                             </Link>
                         </Button>
                         {isAdmin && (

@@ -20,6 +20,8 @@ use App\Http\Controllers\ProposalController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\SelectionController;
 use App\Http\Controllers\TakeoffLineController;
+use App\Http\Controllers\TaskController;
+use App\Http\Controllers\TaskPhotoController;
 use App\Http\Controllers\TimeCardController;
 use App\Http\Controllers\TradePartnerController;
 use App\Http\Controllers\VendorController;
@@ -72,6 +74,20 @@ Route::middleware(['auth'])->group(function () {
     // Photo Gallery — every daily-log photo on a project (everyone views + uploads)
     Route::get('projects/{project}/photos', [ProjectPhotoController::class, 'index'])->name('projects.photos');
     Route::post('projects/{project}/photos', [ProjectPhotoController::class, 'store'])->name('projects.photos.store');
+
+    // Tasks & Punch List — everyone captures and views; creators/admins edit,
+    // assignees work their own tasks; admins record punch sign-off
+    Route::get('projects/{project}/tasks', [TaskController::class, 'index'])->name('tasks.index');
+    Route::post('projects/{project}/tasks', [TaskController::class, 'store'])->name('tasks.store');
+    Route::post('projects/{project}/punch-sign-off', [TaskController::class, 'signOffPunchList'])->name('tasks.punch-sign-off');
+    Route::put('tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
+    Route::patch('tasks/{task}/status', [TaskController::class, 'updateStatus'])->name('tasks.status');
+    Route::patch('tasks/{task}/checklist/{item}', [TaskController::class, 'toggleChecklistItem'])->name('tasks.checklist.toggle');
+    Route::delete('tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
+    Route::post('tasks/{task}/photos', [TaskPhotoController::class, 'store'])->name('tasks.photos.store');
+    Route::get('task-photos/{photo}', [TaskPhotoController::class, 'show'])->name('tasks.photos.show');
+    Route::get('task-photos/{photo}/thumb', [TaskPhotoController::class, 'thumb'])->name('tasks.photos.thumb');
+    Route::delete('task-photos/{photo}', [TaskPhotoController::class, 'destroy'])->name('tasks.photos.destroy');
 
     // Customer Selections (Buildertrend-style) — everyone views; admins manage
     Route::get('projects/{project}/selections', [SelectionController::class, 'index'])->name('selections.index');
