@@ -155,4 +155,12 @@ class Project extends Model
     {
         return $this->hasMany(ProjectProposal::class)->orderByDesc('id');
     }
+
+    /**
+     * @return HasMany<BidRequest, $this>
+     */
+    public function bidRequests(): HasMany
+    {
+        return $this->hasMany(BidRequest::class)->orderByDesc('id');
+    }
 }

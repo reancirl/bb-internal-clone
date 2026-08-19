@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\EquipmentRateController;
 use App\Http\Controllers\Admin\LaborRateController;
 use App\Http\Controllers\Admin\RateController;
 use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\BidRequestController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\ChangeOrderController;
 use App\Http\Controllers\DailyLogController;
@@ -189,6 +190,17 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::put('proposals/{proposal}', [ProposalController::class, 'update'])->name('proposals.update');
     Route::post('proposals/{proposal}/transition', [ProposalController::class, 'transition'])->name('proposals.transition');
     Route::delete('proposals/{proposal}', [ProposalController::class, 'destroy'])->name('proposals.destroy');
+
+    // Sub Bidding (request quotes from trade partners, compare, award to budget)
+    Route::get('bids', [BidRequestController::class, 'index'])->name('bids.index');
+    Route::post('projects/{project}/bids', [BidRequestController::class, 'store'])->name('bids.store');
+    Route::get('bids/{bidRequest}', [BidRequestController::class, 'show'])->name('bids.show');
+    Route::put('bids/{bidRequest}', [BidRequestController::class, 'update'])->name('bids.update');
+    Route::post('bids/{bidRequest}/transition', [BidRequestController::class, 'transition'])->name('bids.transition');
+    Route::delete('bids/{bidRequest}', [BidRequestController::class, 'destroy'])->name('bids.destroy');
+    Route::post('bids/{bidRequest}/responses', [BidRequestController::class, 'storeResponse'])->name('bids.responses.store');
+    Route::put('bid-responses/{response}', [BidRequestController::class, 'updateResponse'])->name('bids.responses.update');
+    Route::delete('bid-responses/{response}', [BidRequestController::class, 'destroyResponse'])->name('bids.responses.destroy');
 
     Route::get('reports', [BudgetController::class, 'report'])->name('reports.index');
     Route::get('reports/time-summary', [ReportController::class, 'timeSummary'])->name('reports.time-summary');
