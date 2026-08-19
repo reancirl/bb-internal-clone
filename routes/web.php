@@ -15,6 +15,7 @@ use App\Http\Controllers\JobController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\PriceBookController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectPhotoController;
 use App\Http\Controllers\ProposalController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\SelectionController;
@@ -67,6 +68,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('projects/{project}/export', [ProjectController::class, 'export'])->name('projects.export');
     Route::get('projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
     Route::patch('takeoff-lines/{takeoffLine}/toggle', [TakeoffLineController::class, 'toggle'])->name('takeoff-lines.toggle');
+
+    // Photo Gallery — every daily-log photo on a project (everyone views + uploads)
+    Route::get('projects/{project}/photos', [ProjectPhotoController::class, 'index'])->name('projects.photos');
+    Route::post('projects/{project}/photos', [ProjectPhotoController::class, 'store'])->name('projects.photos.store');
 
     // Customer Selections (Buildertrend-style) — everyone views; admins manage
     Route::get('projects/{project}/selections', [SelectionController::class, 'index'])->name('selections.index');
