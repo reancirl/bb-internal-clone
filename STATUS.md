@@ -60,13 +60,13 @@ closed. SEC-002 (API throttling and token expiry) is the remaining Critical item
 
 | Total | 🔴 Pending | 🟡 In Progress | 🟢 Fixed | 🔵 Verified | ⚪ Deferred | ❌ Won't Fix |
 |---|---|---|---|---|---|---|
-| 44 | 41 | 0 | 0 | 1 | 2 | 0 |
+| 47 | 43 | 0 | 1 | 1 | 2 | 0 |
 
-By priority (open tasks only): **Critical 1** · **High 12** · **Medium 16** · **Low 12**
+By priority (open tasks only): **Critical 1** · **High 12** · **Medium 17** · **Low 13**
 
 ## Current task
 
-None.
+None. UX-002 is 🟢 Fixed and awaiting a manual visual pass before it moves to 🔵 Verified.
 
 ## Next recommended tasks
 
@@ -131,6 +131,9 @@ Status key: 🔴 Pending · 🟡 In Progress · 🟢 Fixed · 🔵 Verified · �
 | DX-001 | Low | Hygiene | Dead starter files (`app-header`, `nav-main`, `nav-footer`, `coming-soon`, `auth-card-layout`, `appearance-dropdown`, four unused `ui/*`, `tests/Pest.php`, `ExampleTest`); three unused Radix packages; build tooling under `dependencies`; a BOM in `admin/proposals/show.tsx`; the unused `quote` shared prop. *2026-09-05: `welcome.tsx` already removed by SEC-001, which deleted the last `route('register')` caller.* | Delete, prune, move to `devDependencies`, strip the BOM | — | 🔴 Pending | §10, §14 |
 | DX-002 | Low | CI | `lint.yml` runs `prettier --write` and `pint` (both rewrite) and never fails, so drift is never caught; 13 files use 2-space indentation against a 4-space config | Switch to `prettier --check` and `pint --test`; one-time format commit | — | 🔴 Pending | §3 |
 | UX-001 | Medium | Dashboard | The post-login landing page is still the starter placeholder pattern | A real dashboard (today's jobs, open time card, overdue follow-ups, budget alerts) or a role-based redirect | — | 🔴 Pending | §3 |
+| UX-002 | Low | Auth | Login page and the shared auth layout were the starter pattern; `logo.png` is a 17716×9644 / 0.96 MB master rendered directly, so the page stalls on a 171 MP decode; Tailwind 4 leaves every `button` at `cursor: default` | Redesign login and the auth layout; generate sized logo derivatives; restore pointer cursors app-wide; `display=swap` on the webfont | — | 🟢 Fixed 2026-09-05 · `./vendor/bin/phpunit` 261 pass · `npm run build` · eslint + prettier clean | — |
+| PERF-001 | Medium | Assets | `public/img/logo.png` is still the 0.96 MB / 171 MP master in the repo; only the auth pages use the new derivatives | Point the remaining `AppLogoIcon` callers at the derivatives and drop or archive the master | UX-002 | 🔴 Pending | — |
+| BUG-006 | Low | Leads | `convert.tsx:228` reads `errors.contract_price_cents`, which is not a key of `ConvertForm`; the field's validation error never renders | Use `contract_price`, the actual form key | — | 🔴 Pending | — |
 
 ---
 
@@ -147,6 +150,45 @@ Done in `13c225a`. Removed the two register routes, `RegisteredUserController`, 
 `route('register')`. `RegistrationTest` now asserts both routes 404, no user is created, and the
 admin creation path still works. The login page already said "Contact your administrator", so no UI
 change was needed. Suite: 261 pass, 1452 assertions.
+
+### UX-002 — Login page redesign · 🟢 Fixed
+
+**Files.** `resources/js/pages/auth/login.tsx`, `resources/js/layouts/auth/auth-split-layout.tsx`,
+`resources/js/components/app-logo-icon.tsx`, `resources/css/app.css`, `resources/views/app.blade.php`,
+`resources/js/pages/auth/reset-password.tsx`, and five new files under `public/img/`.
+
+**Perceived load time.** `public/img/logo.png` is 17716×9644 (171 MP, 0.96 MB) and was rendered
+directly into a slot a few dozen pixels tall, twice per page — about 680 MB of decode before first
+paint. Pillow refuses to open it by default as a decompression bomb. Added derivatives at 360/720/1080
+plus a navy recolor for light backgrounds (`logo-dark-*`); `AppLogoIcon` now serves them through
+`srcSet`/`sizes` with explicit `width`/`height` so the layout does not shift. 1,004,603 → 26,041 bytes
+at the size the header actually uses. The webfont also had no `display=swap`, so text stayed invisible
+until a third-party round trip finished.
+
+**Cursors.** Tailwind 4 resets `button` to `cursor: default`, and no `ui/` primitive set
+`cursor-pointer`, so nothing in the app showed a pointer. One rule in the base layer now covers
+buttons, `[role=button|checkbox|radio|switch|tab]`, `label[for]`, `summary` and `select`, excluding
+disabled controls. This is app-wide, not login-only.
+
+**Types.** `useForm` requires `Record<string, FormDataConvertible>`; a TS `interface` has no index
+signature and fails that constraint. `LoginForm` and `ResetPasswordForm` were the only two form types
+declared as `interface` — every other page already uses `type` — so both were converted. That clears
+two of the three long-standing `tsc` errors; the third is BUG-006.
+
+**Design.** Desktop keeps the split: the mark centred and large (322→480 px by breakpoint) on the navy
+panel over a masked grid and a radial key light. Below `lg` the panel is dropped entirely and the navy
+mark sits on the page background — no band, no card, no texture. Form fields are 44 px with a 3 px
+focus ring, `aria-invalid` drives the error border, and inputs are 16 px on mobile so iOS Safari does
+not zoom the page on focus.
+
+**Verification.** `./vendor/bin/phpunit` — 261 pass, 1452 assertions. `npm run build` succeeds and the
+bundle contains the new copy and the cursor rule. `eslint` and `prettier --check` clean on the changed
+files. `tsc` reports only BUG-006. `vendor/bin/pint --test` fails on 9 files, all of them pre-existing
+on `main` and unrelated to this branch (DX-002).
+
+**Still open.** No browser automation exists in this repo, so the visual result was verified from the
+built bundle and computed layout values, not by eye. A manual pass in light and dark at phone, tablet
+and desktop widths is needed before this moves to 🔵 Verified.
 
 ### SEC-002 — Throttle and expire API credentials
 
