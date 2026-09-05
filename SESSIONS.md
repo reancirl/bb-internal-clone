@@ -167,3 +167,38 @@ numbers (D-003 territory).
 **Recommended next task.** BUG-003 — case-sensitive `like` means directory and price-book search
 silently misses rows on PostgreSQL while SQLite tests pass. Pairs naturally with TEST-002, which is
 the reason the bug is invisible in CI today.
+
+---
+
+## 2026-09-05 · Session 5 · BUG-003 + TEST-002 case-insensitive search and Postgres in CI
+
+**Investigated.** Found 16 search `like` calls across six controllers (trade partners, vendors, price
+book; web and API), plus two in `ProjectProposal`/`PurchaseOrder` that are prefix matches on
+generated uppercase numbers and were deliberately left alone. Confirmed a local PostgreSQL 17.2 was
+available to test against.
+
+**Changed.** Branch `fix/BUG-003-case-insensitive-search`, commit `19d88bc`. Added `whereLike()` and
+`orWhereLike()` macros in `AppServiceProvider` and applied them across the six controllers. Added a
+`postgres:17` service to `tests.yml` and a second suite run against it. New `tests/Feature/SearchTest.php`
+with six cases.
+
+**Tested.** 281 pass on SQLite and 281 on PostgreSQL, 1637 assertions each. Crucially, the new tests
+were checked against the *old* code on PostgreSQL: 5 of 6 fail, which is the evidence that they
+actually cover the bug rather than passing vacuously.
+
+**Unfinished.** Nothing on this task.
+
+**Problems encountered.** The first full PostgreSQL run failed, which is exactly what TEST-002 exists
+for. My BUG-001 rollback test dropped `project_budget_lines` to force a failure; PostgreSQL refuses
+because `change_orders` and `bid_requests` reference it by foreign key, while SQLite allows it.
+Switched to renaming the table, which behaves the same on both drivers. Worth noting for future
+sessions: schema manipulation inside tests must now work on both engines.
+
+**Decisions.** None new. The macro approach was chosen over `ilike` because `ilike` is
+PostgreSQL-only and would break the SQLite test run.
+
+**New task IDs.** None.
+
+**Recommended next task.** BUG-005 — the empty `withExceptions` means every 403, 404, and expired
+session renders Laravel's HTML error page inside Inertia's modal. It has the widest user-visible
+effect of anything remaining, and it unblocks TEST-005.

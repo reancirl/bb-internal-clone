@@ -1,6 +1,6 @@
 # Project Status — BuffaloBuilt Internal
 
-**Last updated:** 2026-09-05 (Session 4, BUG-001) · **Baseline commit:** `f6dafa0`
+**Last updated:** 2026-09-05 (Session 5, BUG-003 + TEST-002) · **Baseline commit:** `f6dafa0`
 
 This file is the single source of truth for project state. Read it in full at the start of every
 session. Verify its claims against the code before acting on them.
@@ -53,17 +53,17 @@ Details: `AUDIT-2026-09.md` §2 and §8.
 
 ## Current status
 
-**Both Critical security tasks are closed** (SEC-001, SEC-002), and **BUG-001 has removed the last
-known data-corruption path**: change order numbering, decision guards, and the approval transaction.
-The backlog is now High and below, with no task blocking more than one other.
+**Both Critical security tasks are closed** (SEC-001, SEC-002); **BUG-001** removed the last known
+data-corruption path; **BUG-003 + TEST-002** fixed case-sensitive search and put PostgreSQL in CI, so
+the suite now runs on the engine production actually uses. The backlog is High and below.
 
 ## Progress
 
 | Total | 🔴 Pending | 🟡 In Progress | 🟢 Fixed | 🔵 Verified | ⚪ Deferred | ❌ Won't Fix |
 |---|---|---|---|---|---|---|
-| 51 | 44 | 0 | 0 | 5 | 2 | 0 |
+| 51 | 42 | 0 | 0 | 7 | 2 | 0 |
 
-By priority (not yet 🔵 Verified): **Critical 0** · **High 8** · **Medium 18** · **Low 20**
+By priority (not yet 🔵 Verified): **Critical 0** · **High 7** · **Medium 17** · **Low 20**
 
 ## Current task
 
@@ -71,13 +71,13 @@ None.
 
 ## Next recommended tasks
 
-1. **BUG-003** — a real bug in production only: search silently misses rows on PostgreSQL. Pairs
-   naturally with TEST-002, which is what would have caught it.
-2. **BUG-002 · BUG-004 · BUG-005** — independent, each roughly an hour.
-3. **TEST-002** then **PERF-001** — put Postgres in CI before rewriting the report query in SQL.
+1. **BUG-005** — every 403, 404, and expired session currently shows a raw Laravel error page inside
+   Inertia's modal. Widest user-visible effect of anything left.
+2. **BUG-002 · BUG-004** — independent, each roughly an hour.
+3. **PERF-001** — now safe to rewrite the report query in SQL, since CI runs on PostgreSQL.
 4. **TEST-001** then **REF-001** — the API must be tested before it is refactored.
-5. **ARCH-001 · ARCH-002** — now unblocked by BUG-001; fold the third copy of the numbering and
-   status-machine patterns into traits while the shape is fresh.
+5. **ARCH-001 · ARCH-002** — unblocked by BUG-001; fold the repeated numbering and status-machine
+   patterns into traits while the shape is fresh.
 
 ---
 
@@ -94,7 +94,7 @@ Status key: 🔴 Pending · 🟡 In Progress · 🟢 Fixed · 🔵 Verified · �
 | SEC-004 | Low | Deploy | `SESSION_SECURE_COOKIE` unset in `.env.example`; `APP_DEBUG=true` in the example | Production env checklist; verify both on the server | — | 🔴 Pending | §11.5 |
 | BUG-001 | High | Change orders | `max + 1` numbering races to a 500; `decide`/`revert` lack status guards so an approved CO can be re-decided; `decide` writes two rows with no transaction | `nextNumber` with `lockForUpdate` + `retry(3)`; guard on pending; wrap in `DB::transaction` | — | 🔵 Verified 2026-09-05 · `19100d2` · `./vendor/bin/phpunit` 275 pass | §3, §7 |
 | BUG-002 | High | Projects | `destroy` blocks only on non-draft proposals; sent POs and awarded bid requests cascade away, freeing their document numbers for reuse | Extend the guard to non-draft POs and non-draft bid requests | — | 🔴 Pending | §3, §8 |
-| BUG-003 | High | Search | `like` is case-sensitive on PostgreSQL, so directory and price-book search misses rows in production; SQLite tests hide it | `Builder::macro('whereLike')` using `LOWER()`; apply in all four controllers | — | 🔴 Pending | §8 |
+| BUG-003 | High | Search | `like` is case-sensitive on PostgreSQL, so directory and price-book search misses rows in production; SQLite tests hide it | `Builder::macro('whereLike')` using `LOWER()`; apply in all four controllers | — | 🔵 Verified 2026-09-05 · `19d88bc` · suite green on SQLite and PostgreSQL; fails 5/6 on PG without the fix | §8 |
 | BUG-004 | High | Reports · Time · Calendar | Unvalidated `from`/`to`/`month` reach `Carbon::parse` and throw a 500 | Add `date` and regex validation in `ReportController`, `TimeCardController` (web + API), `JobController@calendar` | — | 🔴 Pending | §7 |
 | BUG-005 | High | Errors | `withExceptions` is empty, so 403/404/419/500 render Laravel's HTML page inside Inertia's modal | Standard Inertia exception handler plus `pages/errors/error.tsx`; 419 redirects back with a flash | — | 🔴 Pending | §12 |
 | BUG-006 | High | Inline saves | Budget money and notes, contract field, selection fields, quote rows, checklist and archive toggles call `router.put/patch` with no `onError`, so failures are silent | Shared `saveField` helper with an error toast; later absorbed by the `MoneyInput` in REF-004 | — | 🔴 Pending | §5 |
@@ -110,7 +110,7 @@ Status key: 🔴 Pending · 🟡 In Progress · 🟢 Fixed · 🔵 Verified · �
 | PERF-006 | Low | Operations | Queue and scheduler failures are invisible; emails depend on both. *2026-09-05: SEC-002 also needs `sanctum:prune-expired` scheduled, or expired token rows accumulate forever.* | Failed-job alerting, a scheduler health check, and `Schedule::command('sanctum:prune-expired --hours=24')->daily()` | — | 🔴 Pending | §12 |
 | DB-001 | Medium | Schema | Roughly 22 foreign-key columns are unindexed; PostgreSQL does not auto-index them | One migration adding the indexes listed in the audit | — | 🔴 Pending | §8 |
 | TEST-001 | High | API | Zero tests for `/api` routes except leads; the mobile app depends on hand-copied controllers | Feature tests for login, user, logout, time card, price book, directories, admin | — | 🔴 Pending | §15 |
-| TEST-002 | High | CI | Tests run on SQLite while production is PostgreSQL, hiding locking, unique-with-null, and LIKE differences | Add a Postgres service to `tests.yml` and run the suite on both | — | 🔴 Pending | §15 |
+| TEST-002 | High | CI | Tests run on SQLite while production is PostgreSQL, hiding locking, unique-with-null, and LIKE differences | Add a Postgres service to `tests.yml` and run the suite on both | — | 🔵 Verified 2026-09-05 · `19d88bc` · `postgres:17` service, suite runs twice | §15 |
 | TEST-003 | Medium | Change orders | No test that a non-pending CO rejects a second decision, or that numbering survives concurrency | Add tests alongside BUG-001 | BUG-001 | 🔵 Verified 2026-09-05 · `19100d2` · 7 cases in `ChangeOrderTest` | §15 |
 | TEST-004 | Medium | Frontend | No JS tests; `lib/formula.ts` must stay in lockstep with the PHP evaluator | Vitest with shared golden cases for the formula parser and money helpers | REF-003 | 🔴 Pending | §15 |
 | TEST-005 | Low | E2E | No smoke test of the estimate → proposal → PDF path | Playwright smoke suite | BUG-005 | 🔴 Pending | §15 |
@@ -156,7 +156,12 @@ Done in `13c225a`. Removed the two register routes, `RegisteredUserController`, 
 admin creation path still works. The login page already said "Contact your administrator", so no UI
 change was needed. Suite: 261 pass, 1452 assertions.
 
-### UX-002 — Login page redesign · 🟢 Fixed
+### UX-002 — Login page redesign · 🔵 Verified
+
+Verified 2026-09-05 by the maintainer's manual visual pass on `/login` (logo size, pointer cursors,
+font swap, narrow-width and dark-mode layout). Follow-up PERF-007 covers the remaining callers still
+pointing at the full-size master image.
+
 
 **Files.** `resources/js/pages/auth/login.tsx`, `resources/js/layouts/auth/auth-split-layout.tsx`,
 `resources/js/components/app-logo-icon.tsx`, `resources/css/app.css`, `resources/views/app.blade.php`,
@@ -194,6 +199,24 @@ on `main` and unrelated to this branch (DX-002).
 **Still open.** No browser automation exists in this repo, so the visual result was verified from the
 built bundle and computed layout values, not by eye. A manual pass in light and dark at phone, tablet
 and desktop widths is needed before this moves to 🔵 Verified.
+
+### BUG-003 + TEST-002 — Case-insensitive search, PostgreSQL in CI · 🔵 Verified
+
+Done in `19d88bc`. `whereLike()` / `orWhereLike()` macros lower both sides, so every driver matches
+the same way; applied across the six search controllers. `tests.yml` now runs the suite twice, once
+on SQLite and once on a `postgres:17` service.
+
+**These two were done together on purpose.** The bug only existed on PostgreSQL and the suite only
+ran on SQLite, so fixing the search without fixing CI would have left the fix unprovable. Confirmed
+by reverting the controllers and running the new tests on PostgreSQL: 5 of 6 fail without the fix,
+all pass with it, and SQLite passes either way.
+
+**It immediately paid for itself.** The first full PostgreSQL run failed on the BUG-001 rollback
+test, which dropped `project_budget_lines` — PostgreSQL refuses while other tables reference it by
+foreign key, SQLite allows it. Switched to renaming the table.
+
+**Not changed.** The `like` calls in `ProjectProposal::nextNumber` and `PurchaseOrder::nextNumber`
+are prefix matches on generated uppercase numbers (`PROP-2026-%`), not user search.
 
 ### SEC-002 — Throttle and expire API credentials · 🔵 Verified
 
