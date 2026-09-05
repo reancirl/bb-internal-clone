@@ -65,4 +65,27 @@ class ChangeOrder extends Model
     {
         return 'CO-'.$this->number.' — '.$this->title;
     }
+
+    public function isPending(): bool
+    {
+        return $this->status === self::STATUS_PENDING;
+    }
+
+    /**
+     * Next per-project change order number. Callers run inside a transaction
+     * and retry on the unique-constraint race, mirroring task/PO/proposal
+     * numbering. The max is computed in PHP: Postgres rejects FOR UPDATE
+     * combined with aggregate functions, so lock the rows and aggregate
+     * client-side.
+     */
+    public static function nextNumber(int $projectId): int
+    {
+        $max = static::query()
+            ->where('project_id', $projectId)
+            ->lockForUpdate()
+            ->pluck('number')
+            ->max();
+
+        return (int) $max + 1;
+    }
 }

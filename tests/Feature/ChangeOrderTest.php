@@ -6,7 +6,9 @@ use App\Models\BudgetSection;
 use App\Models\ChangeOrder;
 use App\Models\Project;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class ChangeOrderTest extends TestCase
@@ -143,5 +145,159 @@ class ChangeOrderTest extends TestCase
             ->assertRedirect();
 
         $this->assertSame(45000000, $project->refresh()->contract_price_cents);
+    }
+
+    // BUG-001 — numbering, decision guards, and the approval transaction.
+
+    public function test_numbering_is_per_project(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $a = Project::factory()->create();
+        $b = Project::factory()->create();
+
+        $this->makeChangeOrder($a); // CO-1 on A
+
+        // Each project numbers independently: B starts at 1 even though A
+        // already has change orders.
+        $this->actingAs($admin)->post("/projects/{$a->id}/change-orders", ['title' => 'Second on A'])->assertRedirect();
+        $this->actingAs($admin)->post("/projects/{$b->id}/change-orders", ['title' => 'First on B'])->assertRedirect();
+
+        $this->assertSame([1, 2], $a->changeOrders()->pluck('number')->all());
+        $this->assertSame([1], $b->changeOrders()->pluck('number')->all());
+    }
+
+    public function test_numbering_reuses_the_number_of_a_deleted_trailing_change_order(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $project = Project::factory()->create();
+
+        $this->makeChangeOrder($project);
+        $this->makeChangeOrder($project)->delete(); // CO-2 deleted
+
+        $this->actingAs($admin)->post("/projects/{$project->id}/change-orders", ['title' => 'Next'])->assertRedirect();
+
+        // Documented behavior: numbering is max+1 over surviving rows, so a
+        // deleted trailing number is handed out again. That is acceptable here
+        // because change orders are internal and only pending ones can be
+        // deleted — unlike proposals and POs, whose numbers are customer- and
+        // supplier-facing and are therefore never reissued.
+        $this->assertSame([1, 2], $project->changeOrders()->pluck('number')->all());
+    }
+
+    public function test_an_approved_change_order_cannot_be_decided_again(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $other = User::factory()->admin()->create();
+        $project = Project::factory()->create();
+        $co = $this->makeChangeOrder($project);
+
+        $this->actingAs($admin)->post("/change-orders/{$co->id}/decide", [
+            'status' => ChangeOrder::STATUS_APPROVED,
+        ])->assertRedirect();
+
+        $co->refresh();
+        $firstDecider = $co->decided_by_user_id;
+        $firstLineId = $co->budget_line_id;
+        $this->assertNotNull($firstLineId);
+
+        // A second decision is refused: it would restamp the decider and, after
+        // a revert had cleared budget_line_id, write a duplicate budget line.
+        $this->actingAs($other)
+            ->from("/projects/{$project->id}/budget")
+            ->post("/change-orders/{$co->id}/decide", ['status' => ChangeOrder::STATUS_DECLINED])
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        $co->refresh();
+        $this->assertSame(ChangeOrder::STATUS_APPROVED, $co->status);
+        $this->assertSame($firstDecider, $co->decided_by_user_id);
+        $this->assertSame($firstLineId, $co->budget_line_id);
+        $this->assertSame(1, $project->budgetLines()->count());
+    }
+
+    public function test_a_declined_change_order_cannot_be_decided_again(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $project = Project::factory()->create();
+        $co = $this->makeChangeOrder($project);
+
+        $this->actingAs($admin)->post("/change-orders/{$co->id}/decide", [
+            'status' => ChangeOrder::STATUS_DECLINED,
+        ])->assertRedirect();
+
+        // Flipping a declined order straight to approved would skip the revert
+        // step that the edit guard depends on.
+        $this->actingAs($admin)
+            ->from("/projects/{$project->id}/budget")
+            ->post("/change-orders/{$co->id}/decide", ['status' => ChangeOrder::STATUS_APPROVED])
+            ->assertSessionHas('error');
+
+        $this->assertSame(ChangeOrder::STATUS_DECLINED, $co->refresh()->status);
+        $this->assertNull($co->budget_line_id);
+        $this->assertSame(0, $project->budgetLines()->count());
+    }
+
+    public function test_reverting_a_pending_change_order_is_refused(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $project = Project::factory()->create();
+        $co = $this->makeChangeOrder($project);
+
+        $this->actingAs($admin)
+            ->from("/projects/{$project->id}/budget")
+            ->post("/change-orders/{$co->id}/revert")
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        $this->assertSame(ChangeOrder::STATUS_PENDING, $co->refresh()->status);
+    }
+
+    public function test_reverting_then_approving_reuses_one_budget_line(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $project = Project::factory()->create();
+        $co = $this->makeChangeOrder($project);
+
+        $this->actingAs($admin)->post("/change-orders/{$co->id}/decide", [
+            'status' => ChangeOrder::STATUS_APPROVED,
+        ])->assertRedirect();
+        $this->actingAs($admin)->post("/change-orders/{$co->id}/revert")->assertRedirect();
+        $this->actingAs($admin)->post("/change-orders/{$co->id}/decide", [
+            'status' => ChangeOrder::STATUS_APPROVED,
+        ])->assertRedirect();
+
+        // The empty line is removed on revert and one fresh line is written on
+        // re-approval — never two.
+        $this->assertSame(1, $project->budgetLines()->count());
+        $this->assertNotNull($co->refresh()->budget_line_id);
+        $this->assertSame(1, BudgetSection::where('name', 'CHANGE ORDERS')->count());
+    }
+
+    public function test_approval_rolls_back_entirely_when_the_budget_line_write_fails(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $project = Project::factory()->create();
+        $co = $this->makeChangeOrder($project);
+
+        // Drop the table the approval writes into, so the insert throws after
+        // the status update has already run inside the transaction.
+        Schema::drop('project_budget_lines');
+
+        $this->withoutExceptionHandling();
+
+        try {
+            $this->actingAs($admin)->post("/change-orders/{$co->id}/decide", [
+                'status' => ChangeOrder::STATUS_APPROVED,
+            ]);
+            $this->fail('The budget-line write should have thrown.');
+        } catch (QueryException) {
+            // Expected: the request dies partway through the approval.
+        }
+
+        // Without the transaction the status update would have survived the
+        // failed line write, leaving an approved CO with no cost line.
+        $this->assertSame(ChangeOrder::STATUS_PENDING, $co->refresh()->status);
+        $this->assertNull($co->decided_at);
+        $this->assertNull($co->budget_line_id);
     }
 }

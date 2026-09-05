@@ -61,13 +61,14 @@ deactivated. The backlog is now High and below.
 
 | Total | 🔴 Pending | 🟡 In Progress | 🟢 Fixed | 🔵 Verified | ⚪ Deferred | ❌ Won't Fix |
 |---|---|---|---|---|---|---|
-| 51 | 46 | 0 | 1 | 2 | 2 | 0 |
+| 51 | 46 | 1 | 0 | 3 | 2 | 0 |
 
-By priority (not yet 🔵 Verified): **Critical 0** · **High 9** · **Medium 19** · **Low 21**
+By priority (not yet 🔵 Verified): **Critical 0** · **High 9** · **Medium 19** · **Low 20**
 
 ## Current task
 
-None. UX-002 is 🟢 Fixed and awaiting a manual visual pass before it moves to 🔵 Verified.
+**BUG-001** — change order numbering race, missing status guards, and the missing transaction.
+Started 2026-09-05 on `fix/BUG-001-change-order-integrity`.
 
 ## Next recommended tasks
 
@@ -133,7 +134,7 @@ Status key: 🔴 Pending · 🟡 In Progress · 🟢 Fixed · 🔵 Verified · �
 | DX-002 | Low | CI | `lint.yml` runs `prettier --write` and `pint` (both rewrite) and never fails, so drift is never caught; 13 files use 2-space indentation against a 4-space config | Switch to `prettier --check` and `pint --test`; one-time format commit | — | 🔴 Pending | §3 |
 | UX-001 | Medium | Dashboard | The post-login landing page is still the starter placeholder pattern | A real dashboard (today's jobs, open time card, overdue follow-ups, budget alerts) or a role-based redirect | — | 🔴 Pending | §3 |
 | SEC-005 | Low | Deploy | `SANCTUM_EXPIRATION_MINUTES` is unset in production, so tokens use the 30-day default from SEC-002. Existing tokens issued before that change are older than the window and stop working on deploy — the mobile app must log in again. | Confirm the default suits the business, set the env var if not, and warn mobile users before the deploy | SEC-002 | 🔴 Pending | — |
-| UX-002 | Low | Auth | Login page and the shared auth layout were the starter pattern; `logo.png` is a 17716×9644 / 0.96 MB master rendered directly, so the page stalls on a 171 MP decode; Tailwind 4 leaves every `button` at `cursor: default` | Redesign login and the auth layout; generate sized logo derivatives; restore pointer cursors app-wide; `display=swap` on the webfont | — | 🟢 Fixed 2026-09-05 · `./vendor/bin/phpunit` 261 pass · `npm run build` · eslint + prettier clean | — |
+| UX-002 | Low | Auth | Login page and the shared auth layout were the starter pattern; `logo.png` is a 17716×9644 / 0.96 MB master rendered directly, so the page stalls on a 171 MP decode; Tailwind 4 leaves every `button` at `cursor: default` | Redesign login and the auth layout; generate sized logo derivatives; restore pointer cursors app-wide; `display=swap` on the webfont | — | 🔵 Verified 2026-09-05 · `397fbd0` · `./vendor/bin/phpunit` 261 pass · `npm run build` · manual visual pass on `/login` by the maintainer | — |
 | PERF-007 | Medium | Assets | `public/img/logo.png` is still the 0.96 MB / 171 MP master in the repo; only the auth pages use the new derivatives | Point the remaining `AppLogoIcon` callers at the derivatives and drop or archive the master | UX-002 | 🔴 Pending | — |
 | BUG-011 | Low | Leads | `convert.tsx:228` reads `errors.contract_price_cents`, which is not a key of `ConvertForm`; the field's validation error never renders | Use `contract_price`, the actual form key | — | 🔴 Pending | — |
 
