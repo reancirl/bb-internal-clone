@@ -130,3 +130,40 @@ High 9 / Medium 19 / Low 21. Before adding a row, grep the table for the next fr
 
 **Recommended next task.** BUG-001 — change order numbering race, missing status guards, and the
 missing transaction. Independent, and unblocks ARCH-001, ARCH-002, and TEST-003.
+
+---
+
+## 2026-09-05 · Session 4 · BUG-001 change order integrity (and UX-002 verification)
+
+**Investigated.** Read `ChangeOrder`, `ChangeOrderController`, and the existing seven tests, and
+confirmed all three defects. Compared against `ProjectTask::nextNumber`, which is the pattern the
+codebase already uses for safe numbering.
+
+**Changed.** Branch `fix/BUG-001-change-order-integrity`, commit `19100d2`. Added
+`ChangeOrder::nextNumber()` (lock plus caller retry) and `isPending()`; guarded `decide()` and
+`revert()` on the status they expect; wrapped both in `DB::transaction`; switched `update()` to the
+new helper. Seven new test cases.
+
+Also moved UX-002 to 🔵 Verified after the maintainer did the manual visual pass on `/login`.
+
+**Tested.** `./vendor/bin/phpunit` — 275 pass, 1537 assertions (268 before).
+
+**Unfinished.** Nothing on this task.
+
+**Problems encountered.** Three of my own test attempts were wrong before they were right, which is
+worth recording. (1) I asserted that deleting CO-2 makes the next number 3; it is 2, because
+numbering is `max + 1` over surviving rows. Rather than change the code I documented the behavior in
+a test, since change order numbers are internal and only pending ones can be deleted. (2) The
+rollback test first tried a string-length overflow to force a failure — SQLite ignores column
+lengths. (3) It then tried deleting the parent project, which cascades the change order away. The
+working version drops `project_budget_lines` mid-approval.
+
+**Decisions.** None new. The deleted-number behavior is documented on the task rather than raised to
+a decision, because it restates the existing distinction between internal and customer-facing
+numbers (D-003 territory).
+
+**New task IDs.** None. TEST-003 was satisfied by this work and marked verified alongside BUG-001.
+
+**Recommended next task.** BUG-003 — case-sensitive `like` means directory and price-book search
+silently misses rows on PostgreSQL while SQLite tests pass. Pairs naturally with TEST-002, which is
+the reason the bug is invisible in CI today.

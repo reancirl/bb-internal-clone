@@ -1,6 +1,6 @@
 # Project Status — BuffaloBuilt Internal
 
-**Last updated:** 2026-09-05 (Session 3, SEC-002) · **Baseline commit:** `f6dafa0`
+**Last updated:** 2026-09-05 (Session 4, BUG-001) · **Baseline commit:** `f6dafa0`
 
 This file is the single source of truth for project state. Read it in full at the start of every
 session. Verify its claims against the code before acting on them.
@@ -53,29 +53,31 @@ Details: `AUDIT-2026-09.md` §2 and §8.
 
 ## Current status
 
-**Both Critical security tasks are closed.** SEC-001 removed public registration; SEC-002 throttled
-the public API endpoints, gave tokens a 30-day expiry, and revokes them when an employee is
-deactivated. The backlog is now High and below.
+**Both Critical security tasks are closed** (SEC-001, SEC-002), and **BUG-001 has removed the last
+known data-corruption path**: change order numbering, decision guards, and the approval transaction.
+The backlog is now High and below, with no task blocking more than one other.
 
 ## Progress
 
 | Total | 🔴 Pending | 🟡 In Progress | 🟢 Fixed | 🔵 Verified | ⚪ Deferred | ❌ Won't Fix |
 |---|---|---|---|---|---|---|
-| 51 | 46 | 1 | 0 | 3 | 2 | 0 |
+| 51 | 44 | 0 | 0 | 5 | 2 | 0 |
 
-By priority (not yet 🔵 Verified): **Critical 0** · **High 9** · **Medium 19** · **Low 20**
+By priority (not yet 🔵 Verified): **Critical 0** · **High 8** · **Medium 18** · **Low 20**
 
 ## Current task
 
-**BUG-001** — change order numbering race, missing status guards, and the missing transaction.
-Started 2026-09-05 on `fix/BUG-001-change-order-integrity`.
+None.
 
 ## Next recommended tasks
 
-1. **BUG-001** — independent; unblocks ARCH-001, ARCH-002, TEST-003.
-2. **BUG-002 · BUG-003 · BUG-004 · BUG-005 · DB-001** — all independent, each roughly an hour.
-3. **PERF-006** — now also covers scheduling `sanctum:prune-expired` (added by SEC-002).
+1. **BUG-003** — a real bug in production only: search silently misses rows on PostgreSQL. Pairs
+   naturally with TEST-002, which is what would have caught it.
+2. **BUG-002 · BUG-004 · BUG-005** — independent, each roughly an hour.
+3. **TEST-002** then **PERF-001** — put Postgres in CI before rewriting the report query in SQL.
 4. **TEST-001** then **REF-001** — the API must be tested before it is refactored.
+5. **ARCH-001 · ARCH-002** — now unblocked by BUG-001; fold the third copy of the numbering and
+   status-machine patterns into traits while the shape is fresh.
 
 ---
 
@@ -90,7 +92,7 @@ Status key: 🔴 Pending · 🟡 In Progress · 🟢 Fixed · 🔵 Verified · �
 | SEC-002 | Critical | API | `POST /api/login` and `POST /api/leads` unthrottled; Sanctum tokens never expire; tokens survive user deactivation | Add throttle middleware; set `sanctum.expiration`; delete tokens in `EmployeeController@destroy` | — | 🔵 Verified 2026-09-05 · `52a29bd` · `./vendor/bin/phpunit` 268 pass | §11.2–3 |
 | SEC-003 | Medium | Settings | `ProfileController@destroy` force-deletes the account, even the last admin; time cards cascade away | Soft delete plus last-admin guard, or remove self-delete entirely | — | 🔴 Pending | §11.4 |
 | SEC-004 | Low | Deploy | `SESSION_SECURE_COOKIE` unset in `.env.example`; `APP_DEBUG=true` in the example | Production env checklist; verify both on the server | — | 🔴 Pending | §11.5 |
-| BUG-001 | High | Change orders | `max + 1` numbering races to a 500; `decide`/`revert` lack status guards so an approved CO can be re-decided; `decide` writes two rows with no transaction | `nextNumber` with `lockForUpdate` + `retry(3)`; guard on pending; wrap in `DB::transaction` | — | 🔴 Pending | §3, §7 |
+| BUG-001 | High | Change orders | `max + 1` numbering races to a 500; `decide`/`revert` lack status guards so an approved CO can be re-decided; `decide` writes two rows with no transaction | `nextNumber` with `lockForUpdate` + `retry(3)`; guard on pending; wrap in `DB::transaction` | — | 🔵 Verified 2026-09-05 · `19100d2` · `./vendor/bin/phpunit` 275 pass | §3, §7 |
 | BUG-002 | High | Projects | `destroy` blocks only on non-draft proposals; sent POs and awarded bid requests cascade away, freeing their document numbers for reuse | Extend the guard to non-draft POs and non-draft bid requests | — | 🔴 Pending | §3, §8 |
 | BUG-003 | High | Search | `like` is case-sensitive on PostgreSQL, so directory and price-book search misses rows in production; SQLite tests hide it | `Builder::macro('whereLike')` using `LOWER()`; apply in all four controllers | — | 🔴 Pending | §8 |
 | BUG-004 | High | Reports · Time · Calendar | Unvalidated `from`/`to`/`month` reach `Carbon::parse` and throw a 500 | Add `date` and regex validation in `ReportController`, `TimeCardController` (web + API), `JobController@calendar` | — | 🔴 Pending | §7 |
@@ -109,7 +111,7 @@ Status key: 🔴 Pending · 🟡 In Progress · 🟢 Fixed · 🔵 Verified · �
 | DB-001 | Medium | Schema | Roughly 22 foreign-key columns are unindexed; PostgreSQL does not auto-index them | One migration adding the indexes listed in the audit | — | 🔴 Pending | §8 |
 | TEST-001 | High | API | Zero tests for `/api` routes except leads; the mobile app depends on hand-copied controllers | Feature tests for login, user, logout, time card, price book, directories, admin | — | 🔴 Pending | §15 |
 | TEST-002 | High | CI | Tests run on SQLite while production is PostgreSQL, hiding locking, unique-with-null, and LIKE differences | Add a Postgres service to `tests.yml` and run the suite on both | — | 🔴 Pending | §15 |
-| TEST-003 | Medium | Change orders | No test that a non-pending CO rejects a second decision, or that numbering survives concurrency | Add tests alongside BUG-001 | BUG-001 | 🔴 Pending | §15 |
+| TEST-003 | Medium | Change orders | No test that a non-pending CO rejects a second decision, or that numbering survives concurrency | Add tests alongside BUG-001 | BUG-001 | 🔵 Verified 2026-09-05 · `19100d2` · 7 cases in `ChangeOrderTest` | §15 |
 | TEST-004 | Medium | Frontend | No JS tests; `lib/formula.ts` must stay in lockstep with the PHP evaluator | Vitest with shared golden cases for the formula parser and money helpers | REF-003 | 🔴 Pending | §15 |
 | TEST-005 | Low | E2E | No smoke test of the estimate → proposal → PDF path | Playwright smoke suite | BUG-005 | 🔴 Pending | §15 |
 | REF-001 | Medium | Web + API | Trade partner, vendor, price book, time card, and rate controllers are duplicated between web and API | Shared FormRequests, transformers, and a `TimeCardService` used by both | TEST-001 | 🔴 Pending | §13 |
@@ -215,17 +217,22 @@ every opted-in admin. `sanctum.expiration` is 30 days, overridable with `SANCTUM
 **Follow-ups created.** SEC-005 (production env decision, and existing tokens invalidate on deploy)
 and a note on PERF-006 to schedule `sanctum:prune-expired`.
 
-### BUG-001 — Change order integrity
+### BUG-001 — Change order integrity · 🔵 Verified
 
-**Files.** `app/Http/Controllers/ChangeOrderController.php`, `app/Models/ChangeOrder.php`,
-`tests/Feature/ChangeOrderTest.php`.
+Done in `19100d2`. `ChangeOrder::nextNumber()` locks the project's rows and the caller retries three
+times; `decide()` and `revert()` both refuse unless the order is in the state they expect; approval
+and revert each run in one transaction. `isPending()` replaced the inline status comparison in
+`update()`.
 
-**Note.** `ProjectTask::nextNumber` is the pattern to mirror: `lockForUpdate`, aggregate in PHP
-(PostgreSQL rejects `FOR UPDATE` with aggregates), caller wraps in `retry(3, ... , 100)`.
+**Deliberate non-fix.** Numbering is `max + 1` over surviving rows, so deleting the highest change
+order hands its number to the next one. That is fine here and is now covered by a test that says so:
+change order numbers are internal, and only pending orders can be deleted. Proposal and PO numbers
+are customer- and supplier-facing, which is why those are guarded against reissue instead.
 
-**Acceptance.** Numbering is concurrency-safe. Deciding a non-pending CO returns an error flash and
-changes nothing. Reverting a non-decided CO is a no-op. `decide` runs inside `DB::transaction`. New
-tests cover each of the four. Full suite green.
+**Testing note.** The rollback test drops `project_budget_lines` mid-approval to force the second
+write to throw. Two earlier attempts were discarded: a string-length overflow (SQLite ignores column
+lengths) and a cascade delete of the parent project (which takes the change order with it).
+
 
 ---
 
