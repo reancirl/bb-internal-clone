@@ -58,3 +58,32 @@ stays ignored and the tracking files moved to the root. Recorded as D-005 and re
 **New task IDs.** None.
 
 **Recommended next task.** SEC-001.
+
+---
+
+## 2026-09-05 · Session 2 · SEC-001 remove public registration
+
+**Investigated.** Every reference to registration across routes, controllers, pages, and tests. Two
+assumptions in the task row turned out to be wrong: the login page already directs users to contact
+an administrator (no signup link to remove), and the only other caller of `route('register')` was
+the unrouted `pages/welcome.tsx`.
+
+**Changed.** Branch `fix/SEC-001-remove-public-registration`, commit `13c225a`. Dropped the GET and
+POST register routes with a comment explaining why; deleted `RegisteredUserController`,
+`pages/auth/register.tsx`, and `pages/welcome.tsx`; rewrote `RegistrationTest`.
+
+**Tested.** `./vendor/bin/phpunit` — 261 pass, 1452 assertions (was 260; removed 2 registration
+tests, added 3). `vendor/bin/pint --test` fails and `npx tsc --noEmit` reports 3 errors, both
+verified as pre-existing at baseline `f6dafa0` (which fails Pint and had 5 TS errors); deleting the
+two pages removed 2 of them. Tracked by DX-002.
+
+**Unfinished.** Nothing on this task.
+
+**Problems encountered.** None.
+
+**Decisions.** None new; the change follows the existing admin-creates-accounts model.
+
+**New task IDs.** None. DX-001 was amended to note `welcome.tsx` is already gone.
+
+**Recommended next task.** SEC-002 — throttle `POST /api/login` and `/api/leads`, set
+`sanctum.expiration`, revoke tokens on employee deactivation.

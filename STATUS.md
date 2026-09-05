@@ -1,6 +1,6 @@
 # Project Status — BuffaloBuilt Internal
 
-**Last updated:** 2026-09-05 (Session 1, tracking system setup) · **Baseline commit:** `f6dafa0`
+**Last updated:** 2026-09-05 (Session 2, SEC-001) · **Baseline commit:** `f6dafa0`
 
 This file is the single source of truth for project state. Read it in full at the start of every
 session. Verify its claims against the code before acting on them.
@@ -53,16 +53,16 @@ Details: `AUDIT-2026-09.md` §2 and §8.
 
 ## Current status
 
-Audit complete. Tracking system in place. **No fixes started.** The first work is SEC-001 and
-SEC-002, which close the two open security exposures.
+Audit complete, tracking system in place. **SEC-001 is done and verified.** Public registration is
+closed. SEC-002 (API throttling and token expiry) is the remaining Critical item.
 
 ## Progress
 
 | Total | 🔴 Pending | 🟡 In Progress | 🟢 Fixed | 🔵 Verified | ⚪ Deferred | ❌ Won't Fix |
 |---|---|---|---|---|---|---|
-| 44 | 42 | 0 | 0 | 0 | 2 | 0 |
+| 44 | 41 | 0 | 0 | 1 | 2 | 0 |
 
-By priority (open tasks only): **Critical 2** · **High 12** · **Medium 16** · **Low 12**
+By priority (open tasks only): **Critical 1** · **High 12** · **Medium 16** · **Low 12**
 
 ## Current task
 
@@ -70,11 +70,10 @@ None.
 
 ## Next recommended tasks
 
-1. **SEC-001** — independent, small, closes the largest exposure.
-2. **SEC-002** — independent.
-3. **BUG-001** — independent; unblocks ARCH-001, ARCH-002, TEST-003.
-4. **BUG-002 · BUG-003 · BUG-004 · BUG-005 · DB-001** — all independent, each roughly an hour.
-5. **TEST-001** then **REF-001** — the API must be tested before it is refactored.
+1. **SEC-002** — independent; the last Critical item.
+2. **BUG-001** — independent; unblocks ARCH-001, ARCH-002, TEST-003.
+3. **BUG-002 · BUG-003 · BUG-004 · BUG-005 · DB-001** — all independent, each roughly an hour.
+4. **TEST-001** then **REF-001** — the API must be tested before it is refactored.
 
 ---
 
@@ -85,7 +84,7 @@ Status key: 🔴 Pending · 🟡 In Progress · 🟢 Fixed · 🔵 Verified · �
 
 | ID | Priority | Area | Problem | Recommended fix | Depends on | Status | Ref |
 |---|---|---|---|---|---|---|---|
-| SEC-001 | Critical | Auth | `/register` is public; anyone can create a crew account with read access to pricing, projects, and partner data | Remove register routes, controller, and page (or gate behind an invite); update `RegistrationTest` | — | 🔴 Pending | §11.1 |
+| SEC-001 | Critical | Auth | `/register` is public; anyone can create a crew account with read access to pricing, projects, and partner data | Remove register routes, controller, and page (or gate behind an invite); update `RegistrationTest` | — | 🔵 Verified 2026-09-05 · `13c225a` · `./vendor/bin/phpunit` 261 pass | §11.1 |
 | SEC-002 | Critical | API | `POST /api/login` and `POST /api/leads` unthrottled; Sanctum tokens never expire; tokens survive user deactivation | Add throttle middleware; set `sanctum.expiration`; delete tokens in `EmployeeController@destroy` | — | 🔴 Pending | §11.2–3 |
 | SEC-003 | Medium | Settings | `ProfileController@destroy` force-deletes the account, even the last admin; time cards cascade away | Soft delete plus last-admin guard, or remove self-delete entirely | — | 🔴 Pending | §11.4 |
 | SEC-004 | Low | Deploy | `SESSION_SECURE_COOKIE` unset in `.env.example`; `APP_DEBUG=true` in the example | Production env checklist; verify both on the server | — | 🔴 Pending | §11.5 |
@@ -129,7 +128,7 @@ Status key: 🔴 Pending · 🟡 In Progress · 🟢 Fixed · 🔵 Verified · �
 | ARCH-003 | Low | Projects | Deleting a project hard-cascades POs, bids, COs, logs, photos, tasks, selections, budget, and jobs | Soft delete or an archived status for projects | BUG-002 | 🔴 Pending | §8 |
 | ARCH-004 | Low | Time cards | No project link, so labor actuals cannot flow into the budget the way sub bids and POs do | Optional `project_id` on time cards — needs a product decision first | — | ⚪ Deferred | §8 |
 | ARCH-005 | Low | API | No `/api/v1` prefix; payload changes would break shipped mobile clients | Version the API before wide mobile rollout | REF-001 | ⚪ Deferred | §18 |
-| DX-001 | Low | Hygiene | Dead starter files (`welcome.tsx` 790 lines, `app-header`, `nav-main`, `nav-footer`, `coming-soon`, `auth-card-layout`, `appearance-dropdown`, four unused `ui/*`, `tests/Pest.php`, `ExampleTest`); three unused Radix packages; build tooling under `dependencies`; a BOM in `admin/proposals/show.tsx`; the unused `quote` shared prop | Delete, prune, move to `devDependencies`, strip the BOM | — | 🔴 Pending | §10, §14 |
+| DX-001 | Low | Hygiene | Dead starter files (`app-header`, `nav-main`, `nav-footer`, `coming-soon`, `auth-card-layout`, `appearance-dropdown`, four unused `ui/*`, `tests/Pest.php`, `ExampleTest`); three unused Radix packages; build tooling under `dependencies`; a BOM in `admin/proposals/show.tsx`; the unused `quote` shared prop. *2026-09-05: `welcome.tsx` already removed by SEC-001, which deleted the last `route('register')` caller.* | Delete, prune, move to `devDependencies`, strip the BOM | — | 🔴 Pending | §10, §14 |
 | DX-002 | Low | CI | `lint.yml` runs `prettier --write` and `pint` (both rewrite) and never fails, so drift is never caught; 13 files use 2-space indentation against a 4-space config | Switch to `prettier --check` and `pint --test`; one-time format commit | — | 🔴 Pending | §3 |
 | UX-001 | Medium | Dashboard | The post-login landing page is still the starter placeholder pattern | A real dashboard (today's jobs, open time card, overdue follow-ups, budget alerts) or a role-based redirect | — | 🔴 Pending | §3 |
 
@@ -141,17 +140,13 @@ Only tasks needing more than their table row get a block here. Add one when you 
 Blocks for tasks that have been 🔵 Verified for more than two sessions collapse to a single line
 pointing at the commit, so this section stays readable.
 
-### SEC-001 — Remove public registration
+### SEC-001 — Remove public registration · 🔵 Verified
 
-**Files.** `routes/auth.php` (the three register routes), `app/Http/Controllers/Auth/RegisteredUserController.php`,
-`resources/js/pages/auth/register.tsx`, `tests/Feature/Auth/RegistrationTest.php`, and the "Sign up"
-link on `resources/js/pages/auth/login.tsx`.
-
-**Note.** Employees are created by admins through `/admin/employees`, and the seeder creates the
-initial admin, so nothing depends on self-registration.
-
-**Acceptance.** `GET /register` and `POST /register` return 404. `RegistrationTest` is replaced by a
-test asserting both 404s. The login page no longer links to registration. Full suite green.
+Done in `13c225a`. Removed the two register routes, `RegisteredUserController`, and
+`pages/auth/register.tsx`; also deleted the unrouted `pages/welcome.tsx`, the only other caller of
+`route('register')`. `RegistrationTest` now asserts both routes 404, no user is created, and the
+admin creation path still works. The login page already said "Contact your administrator", so no UI
+change was needed. Suite: 261 pass, 1452 assertions.
 
 ### SEC-002 — Throttle and expire API credentials
 
