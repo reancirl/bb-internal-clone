@@ -100,6 +100,11 @@ class EmployeeController extends Controller
             return back()->with('error', 'You cannot deactivate the last administrator.');
         }
 
+        // Revoke API tokens as well (SEC-002). Sanctum resolves a bearer token
+        // before the soft-delete scope applies, so a deactivated employee's
+        // phone would keep working — and reactivating them would silently
+        // restore every old token.
+        $employee->tokens()->delete();
         $employee->delete();
 
         return back()->with('success', 'Employee deactivated.');

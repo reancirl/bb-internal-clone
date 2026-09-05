@@ -19,12 +19,18 @@ use Illuminate\Support\Facades\Route;
 | as `Authorization: Bearer {token}` on every authenticated request.
 */
 
-// Public
-Route::post('login', [AuthController::class, 'login'])->name('api.login');
+// Public. Throttled per email+IP by the 'api-login' limiter (5/min) so the
+// employee email list cannot be brute forced; the web login has the same
+// budget via LoginRequest::ensureIsNotRateLimited().
+Route::post('login', [AuthController::class, 'login'])
+    ->middleware('throttle:api-login')
+    ->name('api.login');
 
-// Leads — website submission (requires scoped Sanctum token with leads:create ability)
+// Leads — website submission (requires scoped Sanctum token with leads:create
+// ability). Throttled because the token ships with a public marketing site: if
+// it leaks, unbounded submissions would spam every opted-in admin by email.
 Route::post('leads', [LeadController::class, 'store'])
-    ->middleware(['auth:sanctum', 'abilities:leads:create']);
+    ->middleware(['auth:sanctum', 'abilities:leads:create', 'throttle:api-leads']);
 
 // Authenticated mobile app routes
 Route::middleware(['auth:sanctum', 'abilities:mobile'])->group(function () {

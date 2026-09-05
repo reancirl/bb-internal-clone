@@ -50,7 +50,11 @@ return [
     |
     */
 
-    'expiration' => null,
+    // Minutes before an issued token stops working (43200 = 30 days). The
+    // mobile app logs in once and keeps the token, so this is the window in
+    // which a stolen device or leaked token stays usable. Expired tokens are
+    // rejected on use; prune the rows with `sanctum:prune-expired`.
+    'expiration' => (int) env('SANCTUM_EXPIRATION_MINUTES', 43200),
 
     /*
     |--------------------------------------------------------------------------
