@@ -87,3 +87,46 @@ two pages removed 2 of them. Tracked by DX-002.
 
 **Recommended next task.** SEC-002 — throttle `POST /api/login` and `/api/leads`, set
 `sanctum.expiration`, revoke tokens on employee deactivation.
+
+---
+
+## 2026-09-05 · Session 3 · SEC-002 API throttling and token expiry
+
+**Investigated.** Confirmed all three gaps in code before starting: neither public API route had a
+throttle, `sanctum.expiration` was `null`, and `EmployeeController@destroy` soft-deleted the user
+without touching their tokens. Also noted that another session had merged UX-002 (login redesign)
+into `main`; unrelated to this work, no conflict.
+
+**Changed.** Branch `fix/SEC-002-api-throttle-token-expiry`, commit `52a29bd`. Added the `api-login`
+(5/min, email + IP) and `api-leads` (20/min, per token) limiters in `AppServiceProvider`; applied
+both in `routes/api.php`; set `sanctum.expiration` to 30 days via `SANCTUM_EXPIRATION_MINUTES`;
+revoked tokens in `EmployeeController@destroy`. New `tests/Feature/Api/AuthThrottleTest.php`, the
+first test file under `tests/Feature/Api`.
+
+**Tested.** `./vendor/bin/phpunit` — 268 pass, 1506 assertions (261 before, plus 7 new).
+`php artisan route:list -v` confirms both throttle middlewares are attached.
+
+**Unfinished.** Nothing on this task.
+
+**Problems encountered.** Two, both instructive. My first expiry test was vacuous: it read the token
+back from the database, where `plainTextToken` is null, so it sent an empty bearer and would have
+passed even with expiry disabled. After fixing it to use the login response token, it failed — and
+the investigation showed Sanctum's guard is resolved once per test process and cached, so an
+authenticated call made before `travel()` keeps the token valid afterwards. That is a test-harness
+artifact, not a production flaw, since each real request boots a fresh container. The expiry test now
+makes a single authenticated request, with a separate test for the inside-the-window path.
+
+**Decisions.** None new. The 30-day window is a default, not a decision; SEC-005 asks the business to
+confirm it.
+
+**New task IDs.** SEC-005 (production env decision for `SANCTUM_EXPIRATION_MINUTES`; existing mobile
+tokens stop working on deploy). PERF-006 amended to include scheduling `sanctum:prune-expired`.
+
+**Bookkeeping fix.** The UX-002 session reused two IDs that were already taken: its asset task was a
+second `PERF-001` and its lead-form bug a second `BUG-006`. Renumbered to `PERF-007` and `BUG-011`,
+since "continue with PERF-001" would otherwise be ambiguous. The Progress counts were also stale —
+recounted from the table: 51 tasks, 46 pending, 1 fixed, 2 verified, 2 deferred, and by priority
+High 9 / Medium 19 / Low 21. Before adding a row, grep the table for the next free number.
+
+**Recommended next task.** BUG-001 — change order numbering race, missing status guards, and the
+missing transaction. Independent, and unblocks ARCH-001, ARCH-002, and TEST-003.

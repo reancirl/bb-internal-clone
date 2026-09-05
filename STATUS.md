@@ -1,6 +1,6 @@
 # Project Status — BuffaloBuilt Internal
 
-**Last updated:** 2026-09-05 (Session 2, SEC-001) · **Baseline commit:** `f6dafa0`
+**Last updated:** 2026-09-05 (Session 3, SEC-002) · **Baseline commit:** `f6dafa0`
 
 This file is the single source of truth for project state. Read it in full at the start of every
 session. Verify its claims against the code before acting on them.
@@ -53,16 +53,17 @@ Details: `AUDIT-2026-09.md` §2 and §8.
 
 ## Current status
 
-Audit complete, tracking system in place. **SEC-001 is done and verified.** Public registration is
-closed. SEC-002 (API throttling and token expiry) is the remaining Critical item.
+**Both Critical security tasks are closed.** SEC-001 removed public registration; SEC-002 throttled
+the public API endpoints, gave tokens a 30-day expiry, and revokes them when an employee is
+deactivated. The backlog is now High and below.
 
 ## Progress
 
 | Total | 🔴 Pending | 🟡 In Progress | 🟢 Fixed | 🔵 Verified | ⚪ Deferred | ❌ Won't Fix |
 |---|---|---|---|---|---|---|
-| 47 | 43 | 0 | 1 | 1 | 2 | 0 |
+| 51 | 46 | 0 | 1 | 2 | 2 | 0 |
 
-By priority (open tasks only): **Critical 1** · **High 12** · **Medium 17** · **Low 13**
+By priority (not yet 🔵 Verified): **Critical 0** · **High 9** · **Medium 19** · **Low 21**
 
 ## Current task
 
@@ -70,9 +71,9 @@ None. UX-002 is 🟢 Fixed and awaiting a manual visual pass before it moves to 
 
 ## Next recommended tasks
 
-1. **SEC-002** — independent; the last Critical item.
-2. **BUG-001** — independent; unblocks ARCH-001, ARCH-002, TEST-003.
-3. **BUG-002 · BUG-003 · BUG-004 · BUG-005 · DB-001** — all independent, each roughly an hour.
+1. **BUG-001** — independent; unblocks ARCH-001, ARCH-002, TEST-003.
+2. **BUG-002 · BUG-003 · BUG-004 · BUG-005 · DB-001** — all independent, each roughly an hour.
+3. **PERF-006** — now also covers scheduling `sanctum:prune-expired` (added by SEC-002).
 4. **TEST-001** then **REF-001** — the API must be tested before it is refactored.
 
 ---
@@ -85,7 +86,7 @@ Status key: 🔴 Pending · 🟡 In Progress · 🟢 Fixed · 🔵 Verified · �
 | ID | Priority | Area | Problem | Recommended fix | Depends on | Status | Ref |
 |---|---|---|---|---|---|---|---|
 | SEC-001 | Critical | Auth | `/register` is public; anyone can create a crew account with read access to pricing, projects, and partner data | Remove register routes, controller, and page (or gate behind an invite); update `RegistrationTest` | — | 🔵 Verified 2026-09-05 · `13c225a` · `./vendor/bin/phpunit` 261 pass | §11.1 |
-| SEC-002 | Critical | API | `POST /api/login` and `POST /api/leads` unthrottled; Sanctum tokens never expire; tokens survive user deactivation | Add throttle middleware; set `sanctum.expiration`; delete tokens in `EmployeeController@destroy` | — | 🔴 Pending | §11.2–3 |
+| SEC-002 | Critical | API | `POST /api/login` and `POST /api/leads` unthrottled; Sanctum tokens never expire; tokens survive user deactivation | Add throttle middleware; set `sanctum.expiration`; delete tokens in `EmployeeController@destroy` | — | 🔵 Verified 2026-09-05 · `52a29bd` · `./vendor/bin/phpunit` 268 pass | §11.2–3 |
 | SEC-003 | Medium | Settings | `ProfileController@destroy` force-deletes the account, even the last admin; time cards cascade away | Soft delete plus last-admin guard, or remove self-delete entirely | — | 🔴 Pending | §11.4 |
 | SEC-004 | Low | Deploy | `SESSION_SECURE_COOKIE` unset in `.env.example`; `APP_DEBUG=true` in the example | Production env checklist; verify both on the server | — | 🔴 Pending | §11.5 |
 | BUG-001 | High | Change orders | `max + 1` numbering races to a 500; `decide`/`revert` lack status guards so an approved CO can be re-decided; `decide` writes two rows with no transaction | `nextNumber` with `lockForUpdate` + `retry(3)`; guard on pending; wrap in `DB::transaction` | — | 🔴 Pending | §3, §7 |
@@ -103,7 +104,7 @@ Status key: 🔴 Pending · 🟡 In Progress · 🟢 Fixed · 🔵 Verified · �
 | PERF-003 | Medium | Calendar | `jobOptions` returns every non-canceled job in the system for the predecessor picker | Scope options to the selected project via a partial reload or an endpoint | — | 🔴 Pending | §6 |
 | PERF-004 | Medium | Directories | Search input fires a server request on every keystroke on three pages | Debounced `SearchInput` component (300 ms) | — | 🔴 Pending | §9 |
 | PERF-005 | Low | Projects | `show` ships the entire price book as props on every project view | Load the option list lazily when the line dialog opens | — | 🔴 Pending | §6 |
-| PERF-006 | Low | Operations | Queue and scheduler failures are invisible; emails depend on both | Failed-job alerting and a scheduler health check | — | 🔴 Pending | §12 |
+| PERF-006 | Low | Operations | Queue and scheduler failures are invisible; emails depend on both. *2026-09-05: SEC-002 also needs `sanctum:prune-expired` scheduled, or expired token rows accumulate forever.* | Failed-job alerting, a scheduler health check, and `Schedule::command('sanctum:prune-expired --hours=24')->daily()` | — | 🔴 Pending | §12 |
 | DB-001 | Medium | Schema | Roughly 22 foreign-key columns are unindexed; PostgreSQL does not auto-index them | One migration adding the indexes listed in the audit | — | 🔴 Pending | §8 |
 | TEST-001 | High | API | Zero tests for `/api` routes except leads; the mobile app depends on hand-copied controllers | Feature tests for login, user, logout, time card, price book, directories, admin | — | 🔴 Pending | §15 |
 | TEST-002 | High | CI | Tests run on SQLite while production is PostgreSQL, hiding locking, unique-with-null, and LIKE differences | Add a Postgres service to `tests.yml` and run the suite on both | — | 🔴 Pending | §15 |
@@ -131,9 +132,10 @@ Status key: 🔴 Pending · 🟡 In Progress · 🟢 Fixed · 🔵 Verified · �
 | DX-001 | Low | Hygiene | Dead starter files (`app-header`, `nav-main`, `nav-footer`, `coming-soon`, `auth-card-layout`, `appearance-dropdown`, four unused `ui/*`, `tests/Pest.php`, `ExampleTest`); three unused Radix packages; build tooling under `dependencies`; a BOM in `admin/proposals/show.tsx`; the unused `quote` shared prop. *2026-09-05: `welcome.tsx` already removed by SEC-001, which deleted the last `route('register')` caller.* | Delete, prune, move to `devDependencies`, strip the BOM | — | 🔴 Pending | §10, §14 |
 | DX-002 | Low | CI | `lint.yml` runs `prettier --write` and `pint` (both rewrite) and never fails, so drift is never caught; 13 files use 2-space indentation against a 4-space config | Switch to `prettier --check` and `pint --test`; one-time format commit | — | 🔴 Pending | §3 |
 | UX-001 | Medium | Dashboard | The post-login landing page is still the starter placeholder pattern | A real dashboard (today's jobs, open time card, overdue follow-ups, budget alerts) or a role-based redirect | — | 🔴 Pending | §3 |
+| SEC-005 | Low | Deploy | `SANCTUM_EXPIRATION_MINUTES` is unset in production, so tokens use the 30-day default from SEC-002. Existing tokens issued before that change are older than the window and stop working on deploy — the mobile app must log in again. | Confirm the default suits the business, set the env var if not, and warn mobile users before the deploy | SEC-002 | 🔴 Pending | — |
 | UX-002 | Low | Auth | Login page and the shared auth layout were the starter pattern; `logo.png` is a 17716×9644 / 0.96 MB master rendered directly, so the page stalls on a 171 MP decode; Tailwind 4 leaves every `button` at `cursor: default` | Redesign login and the auth layout; generate sized logo derivatives; restore pointer cursors app-wide; `display=swap` on the webfont | — | 🟢 Fixed 2026-09-05 · `./vendor/bin/phpunit` 261 pass · `npm run build` · eslint + prettier clean | — |
-| PERF-001 | Medium | Assets | `public/img/logo.png` is still the 0.96 MB / 171 MP master in the repo; only the auth pages use the new derivatives | Point the remaining `AppLogoIcon` callers at the derivatives and drop or archive the master | UX-002 | 🔴 Pending | — |
-| BUG-006 | Low | Leads | `convert.tsx:228` reads `errors.contract_price_cents`, which is not a key of `ConvertForm`; the field's validation error never renders | Use `contract_price`, the actual form key | — | 🔴 Pending | — |
+| PERF-007 | Medium | Assets | `public/img/logo.png` is still the 0.96 MB / 171 MP master in the repo; only the auth pages use the new derivatives | Point the remaining `AppLogoIcon` callers at the derivatives and drop or archive the master | UX-002 | 🔴 Pending | — |
+| BUG-011 | Low | Leads | `convert.tsx:228` reads `errors.contract_price_cents`, which is not a key of `ConvertForm`; the field's validation error never renders | Use `contract_price`, the actual form key | — | 🔴 Pending | — |
 
 ---
 
@@ -190,18 +192,27 @@ on `main` and unrelated to this branch (DX-002).
 built bundle and computed layout values, not by eye. A manual pass in light and dark at phone, tablet
 and desktop widths is needed before this moves to 🔵 Verified.
 
-### SEC-002 — Throttle and expire API credentials
+### SEC-002 — Throttle and expire API credentials · 🔵 Verified
 
-**Files.** `routes/api.php`, `config/sanctum.php`, `app/Http/Controllers/Admin/EmployeeController.php`
-(`destroy`), and a new `tests/Feature/Api/AuthTest.php`.
+Done in `52a29bd`. Limiters are defined in `AppServiceProvider::configureRateLimiters` and applied in
+`routes/api.php`: `api-login` is 5/minute keyed on email + IP (matching the web budget, and keyed so
+one attacker cannot lock an employee out from another address); `api-leads` is 20/minute keyed on the
+calling token, because that token ships with the public marketing site and each submission emails
+every opted-in admin. `sanctum.expiration` is 30 days, overridable with `SANCTUM_EXPIRATION_MINUTES`.
+`EmployeeController@destroy` now deletes the employee's tokens before soft-deleting them.
 
-**Note.** The web login already throttles inside `LoginRequest` (5 attempts, keyed on email plus IP).
-The API login has nothing. Deactivating an employee soft-deletes the user but leaves their tokens
-valid until the global scope hides the user; reactivation restores them.
+**Two things worth knowing.**
 
-**Acceptance.** A sixth failed login within a minute returns 429. `sanctum.expiration` is set (suggest
-a value in minutes and note it here). `EmployeeController@destroy` deletes the user's tokens.
-`POST /api/leads` is throttled. Tests cover the throttle and the token revocation.
+1. *A test caught a real hole in itself.* The first version of the expiry test read the token back
+   from the database, where `plainTextToken` is null, so it sent an empty bearer and passed for the
+   wrong reason. Rewritten to use the token from the login response.
+2. *Sanctum's guard is resolved once per test process and cached in the container*, so an
+   authenticated request made before `travel()` keeps the token alive afterwards. The expiry test
+   therefore makes exactly one authenticated request. Each real HTTP request boots a fresh container,
+   so this does not apply in production. A separate test covers the inside-the-window happy path.
+
+**Follow-ups created.** SEC-005 (production env decision, and existing tokens invalidate on deploy)
+and a note on PERF-006 to schedule `sanctum:prune-expired`.
 
 ### BUG-001 — Change order integrity
 
