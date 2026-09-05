@@ -279,9 +279,11 @@ class ChangeOrderTest extends TestCase
         $project = Project::factory()->create();
         $co = $this->makeChangeOrder($project);
 
-        // Drop the table the approval writes into, so the insert throws after
-        // the status update has already run inside the transaction.
-        Schema::drop('project_budget_lines');
+        // Make the budget-line insert throw after the status update has already
+        // run inside the transaction. Renaming the table is driver-agnostic:
+        // dropping it fails on Postgres, where other tables reference it by
+        // foreign key, while SQLite allows the drop.
+        Schema::rename('project_budget_lines', 'project_budget_lines_hidden');
 
         $this->withoutExceptionHandling();
 

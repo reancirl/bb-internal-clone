@@ -18,9 +18,9 @@ class VendorController extends Controller
 
         $vendors = Vendor::query()
             ->when($search !== '', fn ($q) => $q->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('notes', 'like', "%{$search}%")
-                    ->orWhere('location', 'like', "%{$search}%");
+                $q->whereLike('name', $search)
+                    ->orWhereLike('notes', $search)
+                    ->orWhereLike('location', $search);
             }))
             ->when($type !== '', fn ($q) => $q->where('type', $type))
             ->orderBy('name')

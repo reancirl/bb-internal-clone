@@ -21,10 +21,10 @@ class TradePartnerController extends Controller
         $partners = TradePartner::query()
             ->with('trades:id,trade_partner_id,trade')
             ->when($search !== '', fn ($q) => $q->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('notes', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
+                $q->whereLike('name', $search)
+                    ->orWhereLike('notes', $search)
+                    ->orWhereLike('phone', $search)
+                    ->orWhereLike('email', $search);
             }))
             ->when($trade !== '', fn ($q) => $q->whereHas('trades', fn ($t) => $t->where('trade', $trade)))
             ->when($location !== '', fn ($q) => $q->where('location', $location))

@@ -14,6 +14,24 @@ jobs:
   ci:
     runs-on: ubuntu-latest
 
+    # Production runs PostgreSQL; the suite historically ran only on SQLite,
+    # which hid driver differences — case-sensitive LIKE, FOR UPDATE with
+    # aggregates, foreign-key enforcement on DDL (TEST-002). Run both.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: bb_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,6 +41,7 @@ jobs:
         with:
           php-version: 8.4
           tools: composer:v2
+          extensions: pdo_pgsql
           coverage: xdebug
 
       - name: Setup Node
@@ -49,5 +68,15 @@ jobs:
       - name: Create SQLite Database
         run: touch database/database.sqlite
 
-      - name: Tests
+      - name: Tests (SQLite)
+        run: ./vendor/bin/phpunit
+
+      - name: Tests (PostgreSQL)
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: bb_test
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
         run: ./vendor/bin/phpunit
