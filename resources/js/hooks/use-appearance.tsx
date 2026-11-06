@@ -26,18 +26,37 @@ export function initializeTheme() {
     mediaQuery.addEventListener('change', handleSystemThemeChange);
 }
 
+let transitionTimeout: number | undefined;
+
+const runThemeTransition = (apply: () => void) => {
+    const root = document.documentElement;
+    root.classList.add('theme-transitioning');
+    apply();
+
+    if (transitionTimeout !== undefined) {
+        window.clearTimeout(transitionTimeout);
+    }
+    transitionTimeout = window.setTimeout(() => {
+        root.classList.remove('theme-transitioning');
+    }, 350);
+};
+
 export function useAppearance() {
     const [appearance, setAppearance] = useState<Appearance>('system');
 
-    const updateAppearance = (mode: Appearance) => {
+    const updateAppearance = (mode: Appearance, animate = true) => {
         setAppearance(mode);
         localStorage.setItem('appearance', mode);
-        applyTheme(mode);
+        if (animate) {
+            runThemeTransition(() => applyTheme(mode));
+        } else {
+            applyTheme(mode);
+        }
     };
 
     useEffect(() => {
         const savedAppearance = localStorage.getItem('appearance') as Appearance | null;
-        updateAppearance(savedAppearance || 'system');
+        updateAppearance(savedAppearance || 'system', false);
 
         return () => mediaQuery.removeEventListener('change', handleSystemThemeChange);
     }, []);
