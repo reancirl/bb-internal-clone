@@ -14,7 +14,6 @@ import {
     Calendar,
     CalendarCheck,
     DollarSign,
-    ExternalLink,
     FileText,
     Mail,
     MapPin,
@@ -211,6 +210,7 @@ export default function LeadShow({ lead, activities, users }: LeadShowProps) {
                                         {format(parseISO(lead.won_at), 'MMMM d, yyyy')}
                                     </CardDescription>
                                 </CardHeader>
+                                {/* Hidden while Projects feature is disabled:
                                 <CardContent>
                                     {lead.converted_project_id ? (
                                         <Button className="w-full" variant="outline" asChild>
@@ -228,6 +228,7 @@ export default function LeadShow({ lead, activities, users }: LeadShowProps) {
                                         </Button>
                                     )}
                                 </CardContent>
+                                */}
                             </Card>
                         )}
                     </div>

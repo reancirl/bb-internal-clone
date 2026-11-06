@@ -17,6 +17,30 @@ use Inertia\Response;
 
 class LeadController extends Controller
 {
+    public function dashboard(): Response
+    {
+        return Inertia::render('dashboard', [
+            'leads' => Lead::orderByDesc('created_at')->get(),
+            'users' => $this->assignableUsers(),
+            'recentActivities' => LeadActivity::with(['lead:id,first_name,last_name,status', 'user:id,name'])
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->limit(8)
+                ->get()
+                ->map(fn (LeadActivity $a) => [
+                    'id' => $a->id,
+                    'lead_id' => $a->lead_id,
+                    'lead_name' => $a->lead ? trim($a->lead->first_name.' '.$a->lead->last_name) : 'Lead',
+                    'lead_status' => $a->lead?->status ?? 'new',
+                    'activity_type' => $a->activity_type,
+                    'title' => $a->title,
+                    'description' => $a->description,
+                    'actor_name' => $a->user->name ?? 'System',
+                    'created_at' => $a->created_at?->toISOString(),
+                ]),
+        ]);
+    }
+
     public function index(Request $request): Response
     {
         $perPage = $request->integer('per_page', 10);
