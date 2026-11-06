@@ -169,14 +169,11 @@
         @apply bg-background text-foreground;
     }
 
-    /* Smooth theme transition when switching Light / Dark / Auto */
-    html.theme-transitioning,
-    html.theme-transitioning *,
-    html.theme-transitioning *::before,
-    html.theme-transitioning *::after {
-        transition-property: background-color, border-color, color, fill, stroke, box-shadow, transform !important;
-        transition-duration: 300ms !important;
-        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
+    /* GPU-composited View Transition for zero-lag appearance switching */
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation: none;
+        mix-blend-mode: normal;
     }
 
     /* Tailwind 4 resets interactive elements to `cursor: default`. Restore the

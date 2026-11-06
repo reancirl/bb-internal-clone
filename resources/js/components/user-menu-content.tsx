@@ -57,9 +57,9 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                             <button
                                 key={value}
                                 type="button"
-                                onClick={() => updateAppearance(value)}
+                                onClick={(e) => updateAppearance(value, e)}
                                 className={cn(
-                                    'relative z-10 flex items-center justify-center gap-1 rounded-sm py-1 text-xs font-medium transition-colors duration-200',
+                                    'relative z-10 flex items-center justify-center gap-1 rounded-sm py-1 text-xs font-medium transition-colors duration-150',
                                     isActive
                                         ? 'text-foreground'
                                         : 'text-muted-foreground hover:text-foreground',
