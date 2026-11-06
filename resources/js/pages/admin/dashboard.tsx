@@ -164,6 +164,12 @@ export default function AdminDashboard({
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                         <Button variant="outline" asChild>
+                            <Link href="/admin/employees" prefetch>
+                                <Users className="mr-2 h-4 w-4" />
+                                Manage Accounts
+                            </Link>
+                        </Button>
+                        <Button variant="outline" asChild>
                             <Link href="/leads" prefetch>
                                 <UserPlus className="mr-2 h-4 w-4" />
                                 Leads List
