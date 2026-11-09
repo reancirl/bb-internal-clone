@@ -28,6 +28,18 @@ return [
         'key' => env('RESEND_KEY'),
     ],
 
+    // Text messages. 'log' (default) writes them to the log; 'textbee' sends
+    // through an Android phone running the textbee.dev app.
+    'sms' => [
+        'driver' => env('SMS_DRIVER', 'log'),
+    ],
+
+    'textbee' => [
+        'key' => env('TEXTBEE_API_KEY'),
+        'device_id' => env('TEXTBEE_DEVICE_ID'),
+        'url' => env('TEXTBEE_URL', 'https://api.textbee.dev/api/v1'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

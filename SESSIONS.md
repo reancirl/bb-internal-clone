@@ -202,3 +202,35 @@ PostgreSQL-only and would break the SQLite test run.
 **Recommended next task.** BUG-005 — the empty `withExceptions` means every 403, 404, and expired
 session renders Laravel's HTML error page inside Inertia's modal. It has the widest user-visible
 effect of anything remaining, and it unblocks TEST-005.
+
+---
+
+## 2026-11-09 · Session 6 · DX-003 test paths, FEAT-001 SMS lead alerts
+
+**Investigated.** The maintainer asked how website leads reach this app. The intake runs in the
+separate `bb_website_revamp` Next.js app on the production server: Buildertrend's contact-form email
+goes to Gmail, then Resend inbound, then `/api/leads/inbound` on the website, which parses it and
+calls this app's `/api/leads`. Buildertrend only emails for contact-form leads (its notification
+settings have no event for leads created any other way), so leads from other sources never arrive.
+The server's `bb-internal` checkout matched `main` (`19405f5`) with a clean tree. A configuration issue in the
+website app was reported to the maintainer directly; it lives in that repository, not here.
+
+**Changed.** Work is on `lowe-dev`, the maintainer's dev-server branch (their choice, in place of a
+per-task branch). Pushes from this session are refused by GitHub (no app access), so work is handed
+over as git bundles. `7185890` DX-003. FEAT-001 in the following commit.
+
+**Tested.** `./vendor/bin/phpunit` 293 pass on SQLite and on PostgreSQL 16. Pint and Prettier clean on
+changed files; `tsc` shows only the existing BUG-011 error. Browser pass on the profile page.
+
+**Unfinished.** FEAT-001 needs one real send through textbee to the maintainer's phone.
+
+**Problems encountered.** 17 tests failed on a fresh Linux checkout: Inertia's test helper looks for
+`resources/js/Pages`, this repo uses `pages`, and earlier sessions ran on a case-insensitive
+filesystem. Fixed as DX-003.
+
+**Decisions.** None new.
+
+**New task IDs.** DX-003, FEAT-001.
+
+**Recommended next task.** Confirm FEAT-001 with a real text. Then BUG-005 as before.
+

@@ -1,6 +1,6 @@
 # Project Status — BuffaloBuilt Internal
 
-**Last updated:** 2026-09-05 (Session 5, BUG-003 + TEST-002) · **Baseline commit:** `f6dafa0`
+**Last updated:** 2026-11-09 (Session 6, DX-003 + FEAT-001) · **Baseline commit:** `f6dafa0`
 
 This file is the single source of truth for project state. Read it in full at the start of every
 session. Verify its claims against the code before acting on them.
@@ -61,13 +61,14 @@ the suite now runs on the engine production actually uses. The backlog is High a
 
 | Total | 🔴 Pending | 🟡 In Progress | 🟢 Fixed | 🔵 Verified | ⚪ Deferred | ❌ Won't Fix |
 |---|---|---|---|---|---|---|
-| 52 | 42 | 0 | 0 | 8 | 2 | 0 |
+| 53 | 42 | 0 | 1 | 8 | 2 | 0 |
 
-By priority (not yet 🔵 Verified): **Critical 0** · **High 7** · **Medium 17** · **Low 20**
+By priority (not yet 🔵 Verified): **Critical 0** · **High 7** · **Medium 18** · **Low 20**
 
 ## Current task
 
-None.
+None. **FEAT-001** (SMS lead alerts) is 🟢 Fixed and waits on one real text through textbee to the
+maintainer's phone before it moves to 🔵 Verified.
 
 ## Next recommended tasks
 
@@ -140,6 +141,7 @@ Status key: 🔴 Pending · 🟡 In Progress · 🟢 Fixed · 🔵 Verified · �
 | PERF-007 | Medium | Assets | `public/img/logo.png` is still the 0.96 MB / 171 MP master in the repo; only the auth pages use the new derivatives | Point the remaining `AppLogoIcon` callers at the derivatives and drop or archive the master | UX-002 | 🔴 Pending | — |
 | BUG-011 | Low | Leads | `convert.tsx:228` reads `errors.contract_price_cents`, which is not a key of `ConvertForm`; the field's validation error never renders | Use `contract_price`, the actual form key | — | 🔴 Pending | — |
 | DX-003 | Low | Tests | Inertia's test helper looks for pages in `resources/js/Pages` by default; this repo uses `resources/js/pages`, so 17 `assertInertia` tests pass on Windows/macOS (case-insensitive) and fail on Linux | Publish `config/inertia.php` pointing both `page_paths` at `js/pages` | — | 🔵 Verified 2026-11-09 · `./vendor/bin/phpunit` 281 pass on Linux (264 before) | — |
+| FEAT-001 | Medium | Notifications | Admins only hear about new leads by email; the maintainer wants a text message on their phone for every lead | `users.phone` + `users.sms_notifications` (off by default); `SmsChannel` on `LeadReceived`; `SmsSender` with `log` (default) and `textbee` drivers chosen by `SMS_DRIVER`; profile fields and a throttled "Send test text" button | — | 🟢 Fixed 2026-11-09 · `./vendor/bin/phpunit` 293 pass on SQLite and PostgreSQL · browser pass on `/settings/profile` · live textbee send not yet confirmed | — |
 
 ---
 
@@ -200,6 +202,37 @@ on `main` and unrelated to this branch (DX-002).
 **Still open.** No browser automation exists in this repo, so the visual result was verified from the
 built bundle and computed layout values, not by eye. A manual pass in light and dark at phone, tablet
 and desktop widths is needed before this moves to 🔵 Verified.
+
+### FEAT-001 — SMS alerts for new leads · 🟢 Fixed
+
+Requested 2026-11-09: when this app receives a lead, text the maintainer's phone. Testing happens on a
+Philippine (+63) number; Twilio's signup rejected that number, so the first real provider is
+**textbee.dev**, where an Android phone running the textbee app sends from its own SIM.
+
+**Shape.** `App\Support\Sms\SmsSender` is the one interface, bound in `AppServiceProvider` from
+`SMS_DRIVER`: `log` (default, writes `[sms] <to>: <text>` to the log) or `textbee`. An unknown value
+throws instead of silently not sending. `App\Notifications\Channels\SmsChannel` is a normal Laravel
+channel; `LeadReceived` lists it and defines `toSms()`. Another provider (Twilio, Semaphore) is one new
+`SmsSender` class and one `match` arm.
+
+**Preferences stay in `Notify`.** Recipients are admins with email on *or* texts on with a number.
+Each notification's `via()` now asks `Notify::channels()` which of its channels the user accepts.
+That had to apply to the four email-only notifications too, or an admin with email off and texts on
+would start getting emails again; a test pins this.
+
+**Message.** `New lead: <name>, <location>. <phone> <link>`. The link uses `APP_URL`, so the dev
+server's `.env` must have the right one.
+
+**Unconfirmed.** textbee's docs could not be fetched from the session (host not reachable). The
+sender uses the device path `POST {TEXTBEE_URL}/gateway/devices/{TEXTBEE_DEVICE_ID}/send-sms` with an
+`x-api-key` header and `{recipients: [...], message}`, as the search results describe. Newer docs
+also mention an account-level `/gateway/send-sms`. The first real test settles which one works.
+
+**Verification so far.** 12 cases in `SmsNotificationTest`; breaking `LeadReceived::via` or
+`JobAssigned::via` makes them fail. Full suite 293 pass on SQLite and PostgreSQL 16. Migration
+up/down/up on SQLite. Browser pass on `/settings/profile`: validation errors, button disabled until a
+number is saved, success toast, normalised number. A lead posted to `/api/leads` went through the
+database queue and produced the text in the log.
 
 ### BUG-003 + TEST-002 — Case-insensitive search, PostgreSQL in CI · 🔵 Verified
 
