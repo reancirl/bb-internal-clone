@@ -53,9 +53,10 @@ class ProfileController extends Controller
 
         Auth::logout();
 
-        // Self-service account deletion is permanent. Admin "deactivate" uses a
-        // soft delete (recoverable); deleting your own account does not.
-        $user->forceDelete();
+        // Soft-delete (deactivate) the account and revoke API tokens so all
+        // historical project, lead, and time card records remain intact.
+        $user->tokens()->delete();
+        $user->delete();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

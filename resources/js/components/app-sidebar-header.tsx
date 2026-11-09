@@ -1,5 +1,5 @@
 import { Breadcrumbs } from '@/components/breadcrumbs';
-import { ClockInOutButton } from '@/components/buffalobuilt/clock-in-out-button';
+// import { ClockInOutButton } from '@/components/buffalobuilt/clock-in-out-button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { type BreadcrumbItem as BreadcrumbItemType } from '@/types';
 
@@ -17,7 +17,7 @@ export function AppSidebarHeader({ breadcrumbs = [], headerAction }: AppSidebarH
             </div>
             <div className="flex items-center gap-2">
                 {headerAction}
-                <ClockInOutButton />
+                {/* <ClockInOutButton /> */}
             </div>
         </header>
     );

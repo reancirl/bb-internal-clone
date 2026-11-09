@@ -34,9 +34,7 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware(['auth'])->group(function () {
-    Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
-    })->name('dashboard');
+    Route::get('dashboard', [LeadController::class, 'dashboard'])->name('dashboard');
 
     Route::get('time-card', [TimeCardController::class, 'index'])->name('time-card.index');
     Route::post('time-card/clock-in', [TimeCardController::class, 'clockIn'])->name('time-card.clock-in');

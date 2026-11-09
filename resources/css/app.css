@@ -169,6 +169,13 @@
         @apply bg-background text-foreground;
     }
 
+    /* GPU-composited View Transition for zero-lag appearance switching */
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation: none;
+        mix-blend-mode: normal;
+    }
+
     /* Tailwind 4 resets interactive elements to `cursor: default`. Restore the
        pointer so buttons, checkboxes and friends read as clickable. Disabled
        controls keep the not-allowed cursor their own utilities set. */

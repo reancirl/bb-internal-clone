@@ -1,304 +1,413 @@
-import { useMemo } from 'react';
-import { Head, Link } from '@inertiajs/react';
-import { type Lead, type CrmUser } from '@/types/crm';
 import { StatusPill } from '@/components/leads/status-pill';
-import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, TrendingUp, AlertCircle, DollarSign, Users } from 'lucide-react';
-import { isBefore, parseISO, startOfDay } from 'date-fns';
+import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
-
-const STATUS_LABELS: Record<Lead['status'], string> = {
-  new: 'New',
-  contacted: 'Contacted',
-  qualified: 'Qualified',
-  meeting_scheduled: 'Meeting Scheduled',
-  proposal_sent: 'Proposal Sent',
-  won: 'Won',
-  lost: 'Lost',
-};
-
-const FUNNEL_STAGES: Lead['status'][] = [
-  'new',
-  'contacted',
-  'qualified',
-  'meeting_scheduled',
-  'proposal_sent',
-  'won',
-];
+import { type BreadcrumbItem } from '@/types';
+import { type CrmUser, type Lead } from '@/types/crm';
+import { Head, Link } from '@inertiajs/react';
+import { isBefore, startOfDay } from 'date-fns';
+import { AlertCircle, ArrowLeft, Award, DollarSign, Target } from 'lucide-react';
+import { useMemo } from 'react';
 
 const STATUS_ORDER: Lead['status'][] = [
-  'new',
-  'contacted',
-  'qualified',
-  'meeting_scheduled',
-  'proposal_sent',
-  'won',
-  'lost',
+    'new',
+    'contacted',
+    'qualified',
+    'meeting_scheduled',
+    'proposal_sent',
+    'won',
+    'lost',
 ];
 
+const STAGE_BAR_COLORS: Record<Lead['status'], string> = {
+    new: 'bg-blue-500',
+    contacted: 'bg-sky-500',
+    qualified: 'bg-indigo-500',
+    meeting_scheduled: 'bg-violet-500',
+    proposal_sent: 'bg-amber-500',
+    won: 'bg-emerald-500',
+    lost: 'bg-rose-400',
+};
+
 const breadcrumbs: BreadcrumbItem[] = [
-  { title: 'Dashboard', href: '/dashboard' },
-  { title: 'CRM Pipeline', href: '/admin/leads' },
-  { title: 'Analytics', href: '/admin/leads/analytics' },
+    { title: 'Dashboard', href: '/dashboard' },
+    { title: 'CRM Pipeline', href: '/admin/leads' },
+    { title: 'Analytics', href: '/admin/leads/analytics' },
 ];
 
 function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(cents / 100);
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        maximumFractionDigits: 0,
+    }).format(cents / 100);
 }
 
-interface LeadsAnalyticsProps {
-  leads: Lead[];
-  users: CrmUser[];
-}
-
-export default function LeadsAnalytics({ leads, users }: LeadsAnalyticsProps) {
-
-  const stats = useMemo(() => {
-    const counts = STATUS_ORDER.reduce(
-      (acc, status) => {
-        acc[status] = leads.filter((l) => l.status === status).length;
-        return acc;
-      },
-      {} as Record<Lead['status'], number>,
-    );
-
-    const active = leads.filter((l) => l.status !== 'lost');
-    const totalValue = active.reduce((sum, l) => sum + (l.estimated_value_cents ?? 0), 0);
-    const wonValue = leads
-      .filter((l) => l.status === 'won')
-      .reduce((sum, l) => sum + (l.estimated_value_cents ?? 0), 0);
-
-    const today = startOfDay(new Date());
-    const overdue = leads.filter(
-      (l) =>
-        l.next_follow_up_date &&
-        l.status !== 'won' &&
-        l.status !== 'lost' &&
-        isBefore(parseISO(l.next_follow_up_date), today),
-    );
-
-    const bySource = leads.reduce(
-      (acc, l) => {
-        const source = l.source || 'other';
-        acc[source] = (acc[source] ?? 0) + 1;
-        return acc;
-      },
-      {} as Record<string, number>,
-    );
-    const maxSource = Math.max(0, ...Object.values(bySource));
-
-    const funnel = FUNNEL_STAGES.map((status, i) => {
-      const count = counts[status];
-      const previous = i > 0 ? counts[FUNNEL_STAGES[i - 1]] : null;
-      const conversion =
-        previous && previous > 0 ? Math.round((count / previous) * 100) : null;
-      return { status, count, previous, conversion };
-    });
-
-    return { counts, totalValue, wonValue, overdue, bySource, maxSource, funnel };
-  }, [leads]);
-
-  return (
-    <AppLayout breadcrumbs={breadcrumbs}>
-      <Head title="Pipeline Analytics" />
-
-      <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
-        {/* Header */}
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-foreground text-2xl font-semibold">Pipeline Analytics</h1>
-            <p className="text-muted-foreground text-sm">
-              Performance metrics, conversion funnel, and follow-up reminders.
-            </p>
-          </div>
-          <Button variant="outline" asChild>
-            <Link href="/admin/leads" prefetch>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Pipeline
-            </Link>
-          </Button>
-        </div>
-
-        {/* Summary cards */}
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <StatCard
-            icon={<Users className="h-4 w-4" />}
-            label="Total Leads"
-            value={leads.length.toString()}
-          />
-          <StatCard
-            icon={<DollarSign className="h-4 w-4" />}
-            label="Pipeline Value"
-            value={formatCurrency(stats.totalValue)}
-          />
-          <StatCard
-            icon={<TrendingUp className="h-4 w-4" />}
-            label="Won Value"
-            value={formatCurrency(stats.wonValue)}
-          />
-          <StatCard
-            icon={<AlertCircle className="h-4 w-4" />}
-            label="Overdue Follow-ups"
-            value={stats.overdue.length.toString()}
-            accent="text-red-600 dark:text-red-400"
-          />
-        </div>
-
-        {/* Pipeline summary */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Pipeline Summary</CardTitle>
-            <CardDescription>Leads currently in each pipeline stage.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
-              {STATUS_ORDER.map((status) => (
-                <div key={status} className="rounded-lg border bg-muted/30 p-4 text-center">
-                  <StatusPill status={status} className="mb-2" />
-                  <div className="text-2xl font-semibold tabular-nums">{stats.counts[status]}</div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          {/* Conversion funnel */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Conversion Funnel</CardTitle>
-              <CardDescription>Share of leads moving from one stage to the next.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {stats.funnel.map((step, i) => {
-                const total = stats.counts[FUNNEL_STAGES[0]];
-                const share = total > 0 ? Math.round((step.count / total) * 100) : 0;
-                return (
-                  <div key={step.status}>
-                    <div className="mb-1 flex items-center justify-between text-sm">
-                      <span className="font-medium">{STATUS_LABELS[step.status]}</span>
-                      <span className="text-muted-foreground">
-                        {step.count} lead{step.count === 1 ? '' : 's'}
-                        {step.conversion !== null && (
-                          <span className="ml-2 inline-flex items-center gap-1 font-medium text-emerald-600 dark:text-emerald-400">
-                            <TrendingUp className="h-3 w-3" />
-                            {step.conversion}% from previous
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
-                      <div
-                        className={cn('h-full rounded-full', i === FUNNEL_STAGES.length - 1 ? 'bg-emerald-500' : 'bg-blue-500')}
-                        style={{ width: `${share}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-
-          <div className="space-y-4">
-            {/* Follow-up reminders */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Follow-up Reminders</CardTitle>
-                <CardDescription>Leads past their follow-up date.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {stats.overdue.length === 0 ? (
-                  <p className="text-muted-foreground py-4 text-center text-sm">No overdue follow-ups.</p>
-                ) : (
-                  <ul className="space-y-3">
-                    {stats.overdue.map((lead) => {
-                      const assignee = users.find((u) => u.id === lead.assigned_to_user_id);
-                      return (
-                        <li key={lead.id}>
-                          <Link
-                            href={`/admin/leads/${lead.id}`}
-                            className="block rounded-lg border bg-red-50 p-3 transition-colors hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-950/50"
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="truncate text-sm font-medium">
-                                {lead.first_name} {lead.last_name}
-                              </span>
-                              <Badge variant="secondary" className="shrink-0 bg-red-200 text-red-800 dark:bg-red-900 dark:text-red-200">
-                                Overdue
-                              </Badge>
-                            </div>
-                            <p className="mt-1 text-xs text-red-700 dark:text-red-300">
-                              Due {formatFollowUp(lead.next_follow_up_date)}
-                              {assignee && ` · ${assignee.name}`}
-                            </p>
-                          </Link>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Lead source breakdown */}
-            <Card>
-              <CardHeader>
-                <CardTitle>By Lead Source</CardTitle>
-                <CardDescription>Where leads come from.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {Object.entries(stats.bySource)
-                  .sort((a, b) => b[1] - a[1])
-                  .map(([source, count]) => (
-                    <div key={source}>
-                      <div className="mb-1 flex items-center justify-between text-sm">
-                        <span className="capitalize">{source.replace('_', ' ')}</span>
-                        <span className="text-muted-foreground">{count}</span>
-                      </div>
-                      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full bg-indigo-500"
-                          style={{ width: `${stats.maxSource > 0 ? (count / stats.maxSource) * 100 : 0}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-    </AppLayout>
-  );
-}
-
-function StatCard({
-  icon,
-  label,
-  value,
-  accent,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  accent?: string;
-}) {
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="text-muted-foreground flex items-center gap-1.5 text-sm">{icon}{label}</div>
-        <div className={cn('mt-2 text-2xl font-semibold tabular-nums', accent)}>{value}</div>
-      </CardContent>
-    </Card>
-  );
+function parseLocalDate(date: string): Date {
+    const [y, m, d] = date.split('-').map(Number);
+    return new Date(y, m - 1, d);
 }
 
 function formatFollowUp(date: string | null): string {
-  if (!date) return '—';
-  const [y, m, d] = date.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    if (!date) return '—';
+    return parseLocalDate(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+interface LeadsAnalyticsProps {
+    leads: Lead[];
+    users: CrmUser[];
+}
+
+export default function LeadsAnalytics({ leads, users }: LeadsAnalyticsProps) {
+    const stats = useMemo(() => {
+        const today = startOfDay(new Date());
+
+        const openLeads = leads.filter((l) => l.status !== 'won' && l.status !== 'lost');
+        const wonLeads = leads.filter((l) => l.status === 'won');
+        const lostLeads = leads.filter((l) => l.status === 'lost');
+
+        const openPipelineCents = openLeads.reduce((sum, l) => sum + (l.estimated_value_cents ?? 0), 0);
+        const wonValueCents = wonLeads.reduce((sum, l) => sum + (l.estimated_value_cents ?? 0), 0);
+
+        const closedCount = wonLeads.length + lostLeads.length;
+        const winRate = closedCount > 0 ? Math.round((wonLeads.length / closedCount) * 100) : null;
+
+        const leadsWithValue = leads.filter((l) => (l.estimated_value_cents ?? 0) > 0);
+        const avgDealCents =
+            leadsWithValue.length > 0
+                ? Math.round(
+                      leadsWithValue.reduce((sum, l) => sum + (l.estimated_value_cents ?? 0), 0) /
+                          leadsWithValue.length,
+                  )
+                : 0;
+
+        // Stage breakdown with both count and dollar value
+        const stages = STATUS_ORDER.map((status) => {
+            const matching = leads.filter((l) => l.status === status);
+            const valueCents = matching.reduce((sum, l) => sum + (l.estimated_value_cents ?? 0), 0);
+            const shareOfLeads = leads.length > 0 ? Math.round((matching.length / leads.length) * 100) : 0;
+            return {
+                status,
+                count: matching.length,
+                valueCents,
+                shareOfLeads,
+            };
+        });
+
+        // Overdue follow-ups
+        const overdue = openLeads
+            .filter((l) => l.next_follow_up_date && isBefore(parseLocalDate(l.next_follow_up_date), today))
+            .sort((a, b) => (a.next_follow_up_date ?? '').localeCompare(b.next_follow_up_date ?? ''));
+
+        // Lead source performance (count, won count, total value)
+        const sourceMap = new Map<string, { source: string; count: number; wonCount: number; valueCents: number }>();
+        leads.forEach((l) => {
+            const key = l.source || 'other';
+            const entry = sourceMap.get(key) ?? { source: key, count: 0, wonCount: 0, valueCents: 0 };
+            entry.count += 1;
+            if (l.status === 'won') entry.wonCount += 1;
+            entry.valueCents += l.estimated_value_cents ?? 0;
+            sourceMap.set(key, entry);
+        });
+        const bySource = Array.from(sourceMap.values()).sort((a, b) => b.count - a.count);
+
+        // Team workload (active count, won count, active pipeline value)
+        const userNameMap = new Map<number, string>();
+        users.forEach((u) => userNameMap.set(u.id, u.name));
+
+        const repMap = new Map<
+            string,
+            { label: string; activeCount: number; wonCount: number; activeValueCents: number }
+        >();
+        leads.forEach((l) => {
+            const key = l.assigned_to_user_id ? `user-${l.assigned_to_user_id}` : 'unassigned';
+            const label = l.assigned_to_user_id
+                ? (userNameMap.get(l.assigned_to_user_id) ?? 'Assigned')
+                : 'Unassigned';
+            const entry = repMap.get(key) ?? { label, activeCount: 0, wonCount: 0, activeValueCents: 0 };
+            if (l.status !== 'won' && l.status !== 'lost') {
+                entry.activeCount += 1;
+                entry.activeValueCents += l.estimated_value_cents ?? 0;
+            } else if (l.status === 'won') {
+                entry.wonCount += 1;
+            }
+            repMap.set(key, entry);
+        });
+        const byRep = Array.from(repMap.values()).sort((a, b) => b.activeValueCents - a.activeValueCents);
+
+        return {
+            openLeads,
+            wonLeads,
+            lostLeads,
+            openPipelineCents,
+            wonValueCents,
+            winRate,
+            avgDealCents,
+            stages,
+            overdue,
+            bySource,
+            byRep,
+            userNameMap,
+        };
+    }, [leads, users]);
+
+    return (
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title="Pipeline Analytics" />
+
+            <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+                {/* Header */}
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                        <h1 className="text-foreground text-2xl font-semibold">Pipeline Analytics</h1>
+                        <p className="text-muted-foreground text-sm">
+                            Clear summary of deal values, stage distribution, lead sources, and follow-ups.
+                        </p>
+                    </div>
+                    <Button variant="outline" asChild>
+                        <Link href="/admin/leads" prefetch>
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Back to Pipeline
+                        </Link>
+                    </Button>
+                </div>
+
+                {/* Top 4 KPI Cards */}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <SummaryCard
+                        icon={<DollarSign className="h-4 w-4 text-blue-600 dark:text-blue-400" />}
+                        label="Open Pipeline Value"
+                        value={formatCurrency(stats.openPipelineCents)}
+                        subtext={`${stats.openLeads.length} active deal${stats.openLeads.length === 1 ? '' : 's'} in progress`}
+                    />
+                    <SummaryCard
+                        icon={<Award className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />}
+                        label="Closed Won Value"
+                        value={formatCurrency(stats.wonValueCents)}
+                        subtext={`${stats.wonLeads.length} won · ${stats.lostLeads.length} lost`}
+                    />
+                    <SummaryCard
+                        icon={<Target className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />}
+                        label="Win Rate"
+                        value={stats.winRate !== null ? `${stats.winRate}%` : '—'}
+                        subtext={`Avg. est. deal: ${formatCurrency(stats.avgDealCents)}`}
+                    />
+                    <SummaryCard
+                        icon={<AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />}
+                        label="Overdue Follow-ups"
+                        value={stats.overdue.length.toString()}
+                        subtext={
+                            stats.overdue.length > 0
+                                ? 'Active leads past their follow-up date'
+                                : 'All active leads on schedule'
+                        }
+                        accent={stats.overdue.length > 0 ? 'text-red-600 dark:text-red-400' : undefined}
+                    />
+                </div>
+
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+                    {/* Left Column: Stage Breakdown & Lead Sources */}
+                    <div className="space-y-6 lg:col-span-7">
+                        {/* Pipeline Stage Breakdown */}
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-base">Pipeline by Stage</CardTitle>
+                                <CardDescription>
+                                    Lead count and total estimated project value in each stage ({leads.length} total leads).
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {stats.stages.map((stage) => (
+                                    <div key={stage.status} className="space-y-1.5">
+                                        <div className="flex items-center justify-between gap-2 text-sm">
+                                            <div className="flex items-center gap-2.5">
+                                                <StatusPill status={stage.status} />
+                                                <span className="text-muted-foreground text-xs">
+                                                    {stage.count} lead{stage.count === 1 ? '' : 's'} ({stage.shareOfLeads}%)
+                                                </span>
+                                            </div>
+                                            <span className="font-semibold tabular-nums">
+                                                {formatCurrency(stage.valueCents)}
+                                            </span>
+                                        </div>
+                                        <div className="bg-muted h-2 w-full overflow-hidden rounded-full">
+                                            <div
+                                                className={cn(
+                                                    'h-full rounded-full transition-all',
+                                                    STAGE_BAR_COLORS[stage.status],
+                                                )}
+                                                style={{ width: `${stage.shareOfLeads}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                            </CardContent>
+                        </Card>
+
+                        {/* Lead Source Breakdown */}
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-base">Lead Sources</CardTitle>
+                                <CardDescription>
+                                    Where leads originate and how much value each channel brings.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {stats.bySource.length === 0 ? (
+                                    <p className="text-muted-foreground py-6 text-center text-sm">No leads yet.</p>
+                                ) : (
+                                    <div className="divide-border divide-y rounded-lg border">
+                                        {stats.bySource.map((item) => (
+                                            <div
+                                                key={item.source}
+                                                className="flex items-center justify-between gap-4 p-3 text-sm"
+                                            >
+                                                <div>
+                                                    <span className="font-medium capitalize">
+                                                        {item.source.replace('_', ' ')}
+                                                    </span>
+                                                    <div className="text-muted-foreground text-xs">
+                                                        {item.count} lead{item.count === 1 ? '' : 's'} · {item.wonCount}{' '}
+                                                        won
+                                                    </div>
+                                                </div>
+                                                <div className="text-right font-semibold tabular-nums">
+                                                    {formatCurrency(item.valueCents)}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Right Column: Team Workload & Overdue Follow-ups */}
+                    <div className="space-y-6 lg:col-span-5">
+                        {/* Team Ownership */}
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-base">Pipeline by Owner</CardTitle>
+                                <CardDescription>
+                                    Open deals and won count assigned to each team member.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {stats.byRep.length === 0 ? (
+                                    <p className="text-muted-foreground py-6 text-center text-sm">No leads yet.</p>
+                                ) : (
+                                    <div className="divide-border divide-y rounded-lg border">
+                                        {stats.byRep.map((rep) => (
+                                            <div
+                                                key={rep.label}
+                                                className="flex items-center justify-between gap-4 p-3 text-sm"
+                                            >
+                                                <div>
+                                                    <span
+                                                        className={cn(
+                                                            'font-medium',
+                                                            rep.label === 'Unassigned' &&
+                                                                'text-amber-700 dark:text-amber-400',
+                                                        )}
+                                                    >
+                                                        {rep.label}
+                                                    </span>
+                                                    <div className="text-muted-foreground text-xs">
+                                                        {rep.activeCount} open · {rep.wonCount} won
+                                                    </div>
+                                                </div>
+                                                <div className="text-right font-semibold tabular-nums">
+                                                    {formatCurrency(rep.activeValueCents)}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Overdue Follow-ups */}
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-base">Overdue Follow-ups</CardTitle>
+                                <CardDescription>Active leads that need a follow-up call or email.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {stats.overdue.length === 0 ? (
+                                    <p className="text-muted-foreground rounded-lg border border-dashed py-6 text-center text-sm">
+                                        No overdue follow-ups.
+                                    </p>
+                                ) : (
+                                    <ul className="space-y-2.5">
+                                        {stats.overdue.map((lead) => {
+                                            const assignee = lead.assigned_to_user_id
+                                                ? stats.userNameMap.get(lead.assigned_to_user_id)
+                                                : null;
+                                            return (
+                                                <li key={lead.id}>
+                                                    <Link
+                                                        href={`/admin/leads/${lead.id}`}
+                                                        className="block rounded-lg border bg-red-50/70 p-3 transition-colors hover:bg-red-100/80 dark:bg-red-950/30 dark:hover:bg-red-950/50"
+                                                    >
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <span className="truncate text-sm font-medium">
+                                                                {lead.first_name} {lead.last_name}
+                                                            </span>
+                                                            <Badge
+                                                                variant="secondary"
+                                                                className="shrink-0 bg-red-200 text-red-800 dark:bg-red-900 dark:text-red-200"
+                                                            >
+                                                                Due {formatFollowUp(lead.next_follow_up_date)}
+                                                            </Badge>
+                                                        </div>
+                                                        <div className="mt-1 flex items-center justify-between text-xs text-red-700 dark:text-red-300">
+                                                            <span>{assignee ? `Owner: ${assignee}` : 'Unassigned'}</span>
+                                                            {lead.estimated_value_cents !== null && (
+                                                                <span className="font-semibold tabular-nums">
+                                                                    {formatCurrency(lead.estimated_value_cents)}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </Link>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+            </div>
+        </AppLayout>
+    );
+}
+
+function SummaryCard({
+    icon,
+    label,
+    value,
+    subtext,
+    accent,
+}: {
+    icon: React.ReactNode;
+    label: string;
+    value: string;
+    subtext: string;
+    accent?: string;
+}) {
+    return (
+        <Card>
+            <CardContent className="p-4">
+                <div className="text-muted-foreground flex items-center justify-between gap-1.5 text-xs font-medium">
+                    <span>{label}</span>
+                    {icon}
+                </div>
+                <div className={cn('mt-2 text-2xl font-semibold tabular-nums', accent)}>{value}</div>
+                <p className="text-muted-foreground mt-1 text-xs">{subtext}</p>
+            </CardContent>
+        </Card>
+    );
 }

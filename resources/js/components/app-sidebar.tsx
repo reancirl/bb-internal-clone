@@ -13,50 +13,39 @@ import {
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import {
-    BarChart3,
-    Book,
-    Briefcase,
-    Calendar,
-    ClipboardList,
-    Clock,
-    DollarSign,
-    FileText,
-    FolderKanban,
-    Gavel,
     Kanban,
     LayoutGrid,
-    NotebookPen,
     PieChart,
     ShieldCheck,
-    Store,
     UserPlus,
-    Users,
 } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const operationsNav: NavItem[] = [
-    { title: 'Time Card', url: '/time-card', icon: Clock },
-    { title: 'Daily Logs', url: '/daily-logs', icon: NotebookPen },
-    { title: 'Leads', url: '/leads', icon: UserPlus },
     { title: 'Dashboard', url: '/dashboard', icon: LayoutGrid },
-    { title: 'Projects', url: '/projects', icon: FolderKanban },
-    { title: 'Calendar', url: '/calendar', icon: Calendar },
-    { title: 'Jobs', url: '/jobs', icon: Briefcase },
-    { title: 'Price Book', url: '/price-book', icon: Book },
-    { title: 'Trade Partners', url: '/trade-partners', icon: Users },
-    { title: 'Vendors', url: '/vendors', icon: Store },
+    { title: 'Leads', url: '/leads', icon: UserPlus },
+    // Hidden features (re-enable when needed):
+    // { title: 'Time Card', url: '/time-card', icon: Clock },
+    // { title: 'Daily Logs', url: '/daily-logs', icon: NotebookPen },
+    // { title: 'Projects', url: '/projects', icon: FolderKanban },
+    // { title: 'Calendar', url: '/calendar', icon: Calendar },
+    // { title: 'Jobs', url: '/jobs', icon: Briefcase },
+    // { title: 'Price Book', url: '/price-book', icon: Book },
+    // { title: 'Trade Partners', url: '/trade-partners', icon: Users },
+    // { title: 'Vendors', url: '/vendors', icon: Store },
 ];
 
 const adminNav: NavItem[] = [
     { title: 'Admin Dashboard', url: '/admin/dashboard', icon: ShieldCheck },
     { title: 'CRM Pipeline', url: '/admin/leads', icon: Kanban },
     { title: 'Pipeline Analytics', url: '/admin/leads/analytics', icon: PieChart },
-    { title: 'Proposals', url: '/admin/proposals', icon: FileText },
-    { title: 'Sub Bids', url: '/admin/bids', icon: Gavel },
-    { title: 'Decision Catalog', url: '/admin/decision-catalog', icon: ClipboardList },
-    { title: 'Rates', url: '/admin/rates', icon: DollarSign },
-    { title: 'Employees', url: '/admin/employees', icon: Users },
-    { title: 'Reports', url: '/admin/reports', icon: BarChart3 },
+    // Hidden features (re-enable when needed):
+    // { title: 'Proposals', url: '/admin/proposals', icon: FileText },
+    // { title: 'Sub Bids', url: '/admin/bids', icon: Gavel },
+    // { title: 'Decision Catalog', url: '/admin/decision-catalog', icon: ClipboardList },
+    // { title: 'Rates', url: '/admin/rates', icon: DollarSign },
+    // { title: 'Employees', url: '/admin/employees', icon: Users },
+    // { title: 'Reports', url: '/admin/reports', icon: BarChart3 },
 ];
 
 function NavSection({ label, items }: { label: string; items: NavItem[] }) {

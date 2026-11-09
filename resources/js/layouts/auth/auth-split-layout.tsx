@@ -37,7 +37,8 @@ export default function AuthSplitLayout({ children, title, description }: AuthLa
                         className="focus-visible:ring-primary-foreground/40 block w-[min(78%,30rem)] rounded-sm transition-transform duration-300 ease-out hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-offset-8 focus-visible:ring-offset-transparent focus-visible:outline-hidden"
                         aria-label="BuffaloBuilt Internal"
                     >
-                        <AppLogoIcon className="h-auto w-full drop-shadow-2xl" />
+                        <AppLogoIcon className="h-auto w-full drop-shadow-2xl dark:hidden" />
+                        <AppLogoIcon tone="dark" className="hidden h-auto w-full drop-shadow-2xl dark:block" />
                     </Link>
 
                     <div aria-hidden className="my-10 h-px w-24 bg-gradient-to-r from-transparent via-white/25 to-transparent" />
