@@ -61,7 +61,7 @@ the suite now runs on the engine production actually uses. The backlog is High a
 
 | Total | 🔴 Pending | 🟡 In Progress | 🟢 Fixed | 🔵 Verified | ⚪ Deferred | ❌ Won't Fix |
 |---|---|---|---|---|---|---|
-| 51 | 42 | 0 | 0 | 7 | 2 | 0 |
+| 52 | 42 | 0 | 0 | 8 | 2 | 0 |
 
 By priority (not yet 🔵 Verified): **Critical 0** · **High 7** · **Medium 17** · **Low 20**
 
@@ -139,6 +139,7 @@ Status key: 🔴 Pending · 🟡 In Progress · 🟢 Fixed · 🔵 Verified · �
 | UX-002 | Low | Auth | Login page and the shared auth layout were the starter pattern; `logo.png` is a 17716×9644 / 0.96 MB master rendered directly, so the page stalls on a 171 MP decode; Tailwind 4 leaves every `button` at `cursor: default` | Redesign login and the auth layout; generate sized logo derivatives; restore pointer cursors app-wide; `display=swap` on the webfont | — | 🔵 Verified 2026-09-05 · `397fbd0` · `./vendor/bin/phpunit` 261 pass · `npm run build` · manual visual pass on `/login` by the maintainer | — |
 | PERF-007 | Medium | Assets | `public/img/logo.png` is still the 0.96 MB / 171 MP master in the repo; only the auth pages use the new derivatives | Point the remaining `AppLogoIcon` callers at the derivatives and drop or archive the master | UX-002 | 🔴 Pending | — |
 | BUG-011 | Low | Leads | `convert.tsx:228` reads `errors.contract_price_cents`, which is not a key of `ConvertForm`; the field's validation error never renders | Use `contract_price`, the actual form key | — | 🔴 Pending | — |
+| DX-003 | Low | Tests | Inertia's test helper looks for pages in `resources/js/Pages` by default; this repo uses `resources/js/pages`, so 17 `assertInertia` tests pass on Windows/macOS (case-insensitive) and fail on Linux | Publish `config/inertia.php` pointing both `page_paths` at `js/pages` | — | 🔵 Verified 2026-11-09 · `./vendor/bin/phpunit` 281 pass on Linux (264 before) | — |
 
 ---
 
