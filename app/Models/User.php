@@ -30,8 +30,6 @@ class User extends Authenticatable
         'password',
         'role',
         'email_notifications',
-        'phone',
-        'sms_notifications',
     ];
 
     /**
@@ -51,16 +49,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'email_notifications' => 'boolean',
-            'sms_notifications' => 'boolean',
         ];
-    }
-
-    /**
-     * Number for the SMS notification channel (App\Notifications\Channels\SmsChannel).
-     */
-    public function routeNotificationForSms(): ?string
-    {
-        return $this->phone;
     }
 
     public function isAdmin(): bool

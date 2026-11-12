@@ -265,3 +265,12 @@ this change.
 
 **Recommended next task.** BUG-005.
 
+---
+
+## 2026-11-12 · Session 7b · Take FEAT-001 off main
+
+**Changed.** `22a0ae7` had already been fast-forwarded onto `main`. Reverted that commit so text
+alerts stay off production until the maintainer asks to ship them. The Cornerstone funnel and the
+hidden email-notifications checkbox stay.
+
+**Unfinished.** FEAT-001 remains in `22a0ae7`.

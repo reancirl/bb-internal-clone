@@ -2,9 +2,6 @@
 
 namespace App\Providers;
 
-use App\Support\Sms\LogSmsSender;
-use App\Support\Sms\SmsSender;
-use App\Support\Sms\TextbeeSmsSender;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
@@ -19,17 +16,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Resolved per use, not a singleton, so a test can switch SMS_DRIVER
-        // with config() and get the matching sender.
-        $this->app->bind(SmsSender::class, fn () => match (config('services.sms.driver')) {
-            'log', null, '' => new LogSmsSender,
-            'textbee' => new TextbeeSmsSender(
-                config('services.textbee.key'),
-                config('services.textbee.device_id'),
-                (string) config('services.textbee.url'),
-            ),
-            default => throw new \InvalidArgumentException('Unknown SMS_DRIVER: '.config('services.sms.driver')),
-        });
+        //
     }
 
     /**
