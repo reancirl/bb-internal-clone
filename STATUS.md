@@ -67,8 +67,9 @@ By priority (not yet 🔵 Verified): **Critical 0** · **High 7** · **Medium 18
 
 ## Current task
 
-None. **FEAT-002** (Cornerstone lead funnel) is 🔵 Verified. **FEAT-001** (SMS lead alerts)
-stays 🟢 Fixed until one real text through textbee is confirmed.
+None. **FEAT-002** (Cornerstone lead funnel) is 🔵 Verified and is on `main`. **FEAT-001**
+(SMS lead alerts) is back on `lowe-dev` only, in `5f4d8d3`. Do not ship it to `main` until the
+maintainer asks.
 
 ## Next recommended tasks
 
@@ -141,7 +142,7 @@ Status key: 🔴 Pending · 🟡 In Progress · 🟢 Fixed · 🔵 Verified · �
 | PERF-007 | Medium | Assets | `public/img/logo.png` is still the 0.96 MB / 171 MP master in the repo; only the auth pages use the new derivatives | Point the remaining `AppLogoIcon` callers at the derivatives and drop or archive the master | UX-002 | 🔴 Pending | — |
 | BUG-011 | Low | Leads | `convert.tsx:228` reads `errors.contract_price_cents`, which is not a key of `ConvertForm`; the field's validation error never renders | Use `contract_price`, the actual form key | — | 🔴 Pending | — |
 | DX-003 | Low | Tests | Inertia's test helper looks for pages in `resources/js/Pages` by default; this repo uses `resources/js/pages`, so 17 `assertInertia` tests pass on Windows/macOS (case-insensitive) and fail on Linux | Publish `config/inertia.php` pointing both `page_paths` at `js/pages` | — | 🔵 Verified 2026-11-09 · `./vendor/bin/phpunit` 281 pass on Linux (264 before) | — |
-| FEAT-001 | Medium | Notifications | Admins only hear about new leads by email; the maintainer wants a text message on their phone for every lead | `users.phone` + `users.sms_notifications` (off by default); `SmsChannel` on `LeadReceived`; `SmsSender` with `log` (default) and `textbee` drivers chosen by `SMS_DRIVER`; profile fields and a throttled "Send test text" button | — | 🟢 Fixed 2026-11-09 · `./vendor/bin/phpunit` 293 pass on SQLite and PostgreSQL · browser pass on `/settings/profile` · live textbee send not yet confirmed | — |
+| FEAT-001 | Medium | Notifications | Admins only hear about new leads by email; the maintainer wants a text message on their phone for every lead | `users.phone` + `users.sms_notifications` (off by default); `SmsChannel` on `LeadReceived`; `SmsSender` with `log` (default) and `textbee` drivers chosen by `SMS_DRIVER`; profile fields and a throttled "Send test text" button | — | 🟢 Fixed 2026-11-09 · on `lowe-dev` at `5f4d8d3` · not on `main` | — |
 | FEAT-002 | Medium | Leads | Spec-home sales need their own board so those leads can be moved off the main pipeline | `leads.funnel` (`general` default, `cornerstone`); same stages; pipeline, analytics, and both dashboards filter by funnel; move keeps the stage. Column drop target follows the pointer, including the column title | — | 🔵 Verified 2026-11-12 · `a13d36c` · `./vendor/bin/phpunit` 298 pass · browser pass on `/admin/leads` | — |
 
 ---
