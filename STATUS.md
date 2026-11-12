@@ -68,7 +68,7 @@ By priority (not yet 🔵 Verified): **Critical 0** · **High 7** · **Medium 18
 ## Current task
 
 None. **FEAT-002** (Cornerstone lead funnel) is 🔵 Verified. **FEAT-001** (SMS lead alerts)
-is 🟢 Fixed in `22a0ae7` and was taken off `main` on 2026-11-12 until the maintainer asks to ship it.
+stays 🟢 Fixed until one real text through textbee is confirmed.
 
 ## Next recommended tasks
 
@@ -141,7 +141,7 @@ Status key: 🔴 Pending · 🟡 In Progress · 🟢 Fixed · 🔵 Verified · �
 | PERF-007 | Medium | Assets | `public/img/logo.png` is still the 0.96 MB / 171 MP master in the repo; only the auth pages use the new derivatives | Point the remaining `AppLogoIcon` callers at the derivatives and drop or archive the master | UX-002 | 🔴 Pending | — |
 | BUG-011 | Low | Leads | `convert.tsx:228` reads `errors.contract_price_cents`, which is not a key of `ConvertForm`; the field's validation error never renders | Use `contract_price`, the actual form key | — | 🔴 Pending | — |
 | DX-003 | Low | Tests | Inertia's test helper looks for pages in `resources/js/Pages` by default; this repo uses `resources/js/pages`, so 17 `assertInertia` tests pass on Windows/macOS (case-insensitive) and fail on Linux | Publish `config/inertia.php` pointing both `page_paths` at `js/pages` | — | 🔵 Verified 2026-11-09 · `./vendor/bin/phpunit` 281 pass on Linux (264 before) | — |
-| FEAT-001 | Medium | Notifications | Admins only hear about new leads by email; the maintainer wants a text message on their phone for every lead | `users.phone` + `users.sms_notifications` (off by default); `SmsChannel` on `LeadReceived`; `SmsSender` with `log` (default) and `textbee` drivers chosen by `SMS_DRIVER`; profile fields and a throttled "Send test text" button | — | 🟢 Fixed 2026-11-09 · `22a0ae7` · taken off `main` 2026-11-12 until the maintainer asks to ship it | — |
+| FEAT-001 | Medium | Notifications | Admins only hear about new leads by email; the maintainer wants a text message on their phone for every lead | `users.phone` + `users.sms_notifications` (off by default); `SmsChannel` on `LeadReceived`; `SmsSender` with `log` (default) and `textbee` drivers chosen by `SMS_DRIVER`; profile fields and a throttled "Send test text" button | — | 🟢 Fixed 2026-11-09 · `./vendor/bin/phpunit` 293 pass on SQLite and PostgreSQL · browser pass on `/settings/profile` · live textbee send not yet confirmed | — |
 | FEAT-002 | Medium | Leads | Spec-home sales need their own board so those leads can be moved off the main pipeline | `leads.funnel` (`general` default, `cornerstone`); same stages; pipeline, analytics, and both dashboards filter by funnel; move keeps the stage. Column drop target follows the pointer, including the column title | — | 🔵 Verified 2026-11-12 · `a13d36c` · `./vendor/bin/phpunit` 298 pass · browser pass on `/admin/leads` | — |
 
 ---
@@ -234,9 +234,6 @@ also mention an account-level `/gateway/send-sms`. The first real test settles w
 up/down/up on SQLite. Browser pass on `/settings/profile`: validation errors, button disabled until a
 number is saved, success toast, normalised number. A lead posted to `/api/leads` went through the
 database queue and produced the text in the log.
-
-**Not on main.** Reverted off `main` on 2026-11-12. The implementation remains in `22a0ae7`. Ship it
-only when the maintainer asks.
 
 ### FEAT-002 — Cornerstone / spec home funnel · 🔵 Verified
 

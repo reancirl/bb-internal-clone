@@ -7,6 +7,7 @@ import DeleteUser from '@/components/delete-user';
 import HeadingSmall from '@/components/heading-small';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
@@ -26,12 +27,24 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
         name: auth.user.name,
         email: auth.user.email,
         email_notifications: auth.user.email_notifications,
+        phone: auth.user.phone ?? '',
+        sms_notifications: auth.user.sms_notifications,
     });
+
+    const testSms = useForm({});
+    const savedPhone = auth.user.phone;
+
+    const sendTestSms = () => {
+        testSms.post(route('profile.test-sms'), { preserveScroll: true });
+    };
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
 
-        patch(route('profile.update'));
+        // Show the number as the server stored it (spaces and dashes stripped).
+        patch(route('profile.update'), {
+            onSuccess: (page) => setData('phone', (page.props as unknown as SharedData).auth.user.phone ?? ''),
+        });
     };
 
     return (
@@ -98,8 +111,51 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                             </div>
                         )}
 
+                        <div className="grid gap-2">
+                            <Label htmlFor="phone">Mobile number</Label>
+
+                            <Input
+                                id="phone"
+                                type="tel"
+                                inputMode="tel"
+                                className="mt-1 block w-full"
+                                value={data.phone}
+                                onChange={(e) => setData('phone', e.target.value)}
+                                autoComplete="tel"
+                                placeholder="+639171234567"
+                            />
+                            <p className="text-muted-foreground text-sm">International format with the country code.</p>
+
+                            <InputError className="mt-2" message={errors.phone} />
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                            <Checkbox
+                                id="sms_notifications"
+                                checked={data.sms_notifications}
+                                onCheckedChange={(checked) => setData('sms_notifications', checked === true)}
+                            />
+                            <div className="grid gap-0.5">
+                                <Label htmlFor="sms_notifications">Text me about new leads</Label>
+                                <p className="text-muted-foreground text-sm">
+                                    Admins get a text message on this number as soon as a lead arrives. Works even with email notifications off.
+                                </p>
+                                <InputError message={errors.sms_notifications} />
+                            </div>
+                        </div>
+
                         <div className="flex items-center gap-4">
                             <Button disabled={processing}>Save</Button>
+
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={sendTestSms}
+                                disabled={testSms.processing || !savedPhone}
+                                title={savedPhone ? `Send a test text to ${savedPhone}` : 'Save a mobile number first'}
+                            >
+                                Send test text
+                            </Button>
 
                             <Transition
                                 show={recentlySuccessful}
