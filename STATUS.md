@@ -1,6 +1,6 @@
 # Project Status — BuffaloBuilt Internal
 
-**Last updated:** 2026-11-09 (Session 6, DX-003 + FEAT-001) · **Baseline commit:** `f6dafa0`
+**Last updated:** 2026-11-12 (Session 7, FEAT-002) · **Baseline commit:** `f6dafa0`
 
 This file is the single source of truth for project state. Read it in full at the start of every
 session. Verify its claims against the code before acting on them.
@@ -61,14 +61,14 @@ the suite now runs on the engine production actually uses. The backlog is High a
 
 | Total | 🔴 Pending | 🟡 In Progress | 🟢 Fixed | 🔵 Verified | ⚪ Deferred | ❌ Won't Fix |
 |---|---|---|---|---|---|---|
-| 53 | 42 | 0 | 1 | 8 | 2 | 0 |
+| 54 | 42 | 0 | 1 | 9 | 2 | 0 |
 
 By priority (not yet 🔵 Verified): **Critical 0** · **High 7** · **Medium 18** · **Low 20**
 
 ## Current task
 
-None. **FEAT-001** (SMS lead alerts) is 🟢 Fixed and waits on one real text through textbee to the
-maintainer's phone before it moves to 🔵 Verified.
+None. **FEAT-002** (Cornerstone lead funnel) is 🔵 Verified. **FEAT-001** (SMS lead alerts)
+stays 🟢 Fixed until one real text through textbee is confirmed.
 
 ## Next recommended tasks
 
@@ -142,6 +142,7 @@ Status key: 🔴 Pending · 🟡 In Progress · 🟢 Fixed · 🔵 Verified · �
 | BUG-011 | Low | Leads | `convert.tsx:228` reads `errors.contract_price_cents`, which is not a key of `ConvertForm`; the field's validation error never renders | Use `contract_price`, the actual form key | — | 🔴 Pending | — |
 | DX-003 | Low | Tests | Inertia's test helper looks for pages in `resources/js/Pages` by default; this repo uses `resources/js/pages`, so 17 `assertInertia` tests pass on Windows/macOS (case-insensitive) and fail on Linux | Publish `config/inertia.php` pointing both `page_paths` at `js/pages` | — | 🔵 Verified 2026-11-09 · `./vendor/bin/phpunit` 281 pass on Linux (264 before) | — |
 | FEAT-001 | Medium | Notifications | Admins only hear about new leads by email; the maintainer wants a text message on their phone for every lead | `users.phone` + `users.sms_notifications` (off by default); `SmsChannel` on `LeadReceived`; `SmsSender` with `log` (default) and `textbee` drivers chosen by `SMS_DRIVER`; profile fields and a throttled "Send test text" button | — | 🟢 Fixed 2026-11-09 · `./vendor/bin/phpunit` 293 pass on SQLite and PostgreSQL · browser pass on `/settings/profile` · live textbee send not yet confirmed | — |
+| FEAT-002 | Medium | Leads | Spec-home sales need their own board so those leads can be moved off the main pipeline | `leads.funnel` (`general` default, `cornerstone`); same stages; pipeline, analytics, and both dashboards filter by funnel; move keeps the stage. Column drop target follows the pointer, including the column title | — | 🔵 Verified 2026-11-12 · `./vendor/bin/phpunit` 298 pass · browser pass on `/admin/leads` | — |
 
 ---
 
@@ -233,6 +234,28 @@ also mention an account-level `/gateway/send-sms`. The first real test settles w
 up/down/up on SQLite. Browser pass on `/settings/profile`: validation errors, button disabled until a
 number is saved, success toast, normalised number. A lead posted to `/api/leads` went through the
 database queue and produced the text in the log.
+
+### FEAT-002 — Cornerstone / spec home funnel · 🔵 Verified
+
+Requested 2026-11-12. Spec-home sales need a second board so those leads can leave the main pipeline.
+
+**Shape.** `leads.funnel` is `general` or `cornerstone`. Existing rows and website intake stay
+`general` because the column default is `general` and `Api\LeadController` does not set it. Both
+funnels use `Lead::STATUSES`. Changing funnel writes an activity and does not touch `status`,
+`won_at`, or `lost_at`. The pipeline and its analytics take a validated `funnel` query and default to
+`general`. The crew dashboard and the admin dashboard count only the sales funnel, so Cornerstone
+deals do not mix into those numbers. A lead created from a board is saved into that funnel. The flat
+`/leads` inbox still lists every lead.
+
+**Verification.** Five new cases in `LeadPipelineTest`. Full suite 298 pass, 1757 assertions.
+`vendor/bin/pint --dirty` clean. Local migration applied. In the browser, the Cornerstone board
+started empty, Browser Check moved there and stayed in New, Cornerstone analytics showed 1 active
+deal, and the lead was moved back to the sales board.
+
+**Drop target.** The kanban used `closestCorners`, so a card held over a column title stayed closest
+to the column it came from and that column did not highlight. The pointer now picks the column,
+including the title, on every stage. Checked on all six empty columns at the title, just under it,
+and in the middle.
 
 ### BUG-003 + TEST-002 — Case-insensitive search, PostgreSQL in CI · 🔵 Verified
 

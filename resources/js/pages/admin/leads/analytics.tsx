@@ -5,8 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
-import { type CrmUser, type Lead } from '@/types/crm';
-import { Head, Link } from '@inertiajs/react';
+import { LEAD_FUNNELS, type CrmUser, type Lead, type LeadFunnel } from '@/types/crm';
+import { Head, Link, router } from '@inertiajs/react';
 import { isBefore, startOfDay } from 'date-fns';
 import { AlertCircle, ArrowLeft, Award, DollarSign, Target } from 'lucide-react';
 import { useMemo } from 'react';
@@ -31,11 +31,6 @@ const STAGE_BAR_COLORS: Record<Lead['status'], string> = {
     lost: 'bg-rose-400',
 };
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Dashboard', href: '/dashboard' },
-    { title: 'CRM Pipeline', href: '/admin/leads' },
-    { title: 'Analytics', href: '/admin/leads/analytics' },
-];
 
 function formatCurrency(cents: number): string {
     return new Intl.NumberFormat('en-US', {
@@ -58,9 +53,16 @@ function formatFollowUp(date: string | null): string {
 interface LeadsAnalyticsProps {
     leads: Lead[];
     users: CrmUser[];
+    funnel: LeadFunnel;
 }
 
-export default function LeadsAnalytics({ leads, users }: LeadsAnalyticsProps) {
+export default function LeadsAnalytics({ leads, users, funnel }: LeadsAnalyticsProps) {
+    const pipelineHref = funnel === 'cornerstone' ? '/admin/leads?funnel=cornerstone' : '/admin/leads';
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: 'Dashboard', href: '/dashboard' },
+        { title: 'CRM Pipeline', href: pipelineHref },
+        { title: 'Analytics', href: funnel === 'general' ? '/admin/leads/analytics' : `/admin/leads/analytics?funnel=${funnel}` },
+    ];
     const stats = useMemo(() => {
         const today = startOfDay(new Date());
 
@@ -163,15 +165,36 @@ export default function LeadsAnalytics({ leads, users }: LeadsAnalyticsProps) {
                     <div>
                         <h1 className="text-foreground text-2xl font-semibold">Pipeline Analytics</h1>
                         <p className="text-muted-foreground text-sm">
-                            Clear summary of deal values, stage distribution, lead sources, and follow-ups.
+                            {funnel === 'cornerstone'
+                                ? 'Cornerstone / spec homes only. Sales pipeline deals are not included.'
+                                : 'Sales pipeline only. Cornerstone / spec homes deals are not included.'}
                         </p>
                     </div>
                     <Button variant="outline" asChild>
-                        <Link href="/admin/leads" prefetch>
+                        <Link href={pipelineHref} prefetch>
                             <ArrowLeft className="mr-2 h-4 w-4" />
                             Back to Pipeline
                         </Link>
                     </Button>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                    {LEAD_FUNNELS.map((item) => (
+                        <Button
+                            key={item.value}
+                            size="sm"
+                            variant={funnel === item.value ? 'default' : 'outline'}
+                            onClick={() => {
+                                if (item.value === funnel) return;
+                                router.get(
+                                    '/admin/leads/analytics',
+                                    item.value === 'general' ? {} : { funnel: item.value },
+                                );
+                            }}
+                        >
+                            {item.label}
+                        </Button>
+                    ))}
                 </div>
 
                 {/* Top 4 KPI Cards */}

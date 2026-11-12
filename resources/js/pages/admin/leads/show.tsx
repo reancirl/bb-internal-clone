@@ -4,9 +4,10 @@ import { QuickActionModal } from '@/components/leads/quick-action-modal';
 import { StatusPill } from '@/components/leads/status-pill';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { CrmUser, Lead, LeadActivity } from '@/types/crm';
+import { CrmUser, LEAD_FUNNELS, Lead, LeadActivity } from '@/types/crm';
 import { Head, Link, router } from '@inertiajs/react';
 import { format, parseISO } from 'date-fns';
 import {
@@ -26,11 +27,6 @@ import {
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Dashboard', href: '/dashboard' },
-    { title: 'CRM Pipeline', href: '/admin/leads' },
-];
-
 interface LeadShowProps {
     lead: Lead;
     activities: LeadActivity[];
@@ -41,6 +37,24 @@ export default function LeadShow({ lead, activities, users }: LeadShowProps) {
     const [modalOpen, setModalOpen] = useState(false);
 
     const assignedUser = users.find((u) => u.id === lead.assigned_to_user_id);
+    const pipelineHref = lead.funnel === 'cornerstone' ? '/admin/leads?funnel=cornerstone' : '/admin/leads';
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: 'Dashboard', href: '/dashboard' },
+        { title: 'CRM Pipeline', href: pipelineHref },
+    ];
+
+    const moveFunnel = (funnel: string) => {
+        if (funnel === lead.funnel) return;
+
+        router.patch(
+            `/admin/leads/${lead.id}`,
+            { funnel },
+            {
+                preserveScroll: true,
+                onError: () => toast.error('Could not move this lead.'),
+            },
+        );
+    };
 
     const handleSaveActivity = (activity: Omit<LeadActivity, 'id' | 'lead_id' | 'created_by' | 'created_at'>) => {
         // Success toast comes from the server flash via <FlashToaster />.
@@ -58,7 +72,7 @@ export default function LeadShow({ lead, activities, users }: LeadShowProps) {
                 {/* Header */}
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="flex items-center gap-4">
-                        <Link href="/admin/leads">
+                        <Link href={pipelineHref}>
                             <Button variant="outline" size="icon">
                                 <ArrowLeft className="h-4 w-4" />
                             </Button>
@@ -98,6 +112,27 @@ export default function LeadShow({ lead, activities, users }: LeadShowProps) {
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                     {/* Left Column - Lead Info */}
                     <div className="space-y-6 lg:col-span-1">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Funnel</CardTitle>
+                                <CardDescription>Moving a lead keeps its current stage.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Select value={lead.funnel} onValueChange={moveFunnel}>
+                                    <SelectTrigger id="lead-funnel">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {LEAD_FUNNELS.map((item) => (
+                                            <SelectItem key={item.value} value={item.value}>
+                                                {item.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </CardContent>
+                        </Card>
+
                         <Card>
                             <CardHeader>
                                 <CardTitle>Contact Information</CardTitle>

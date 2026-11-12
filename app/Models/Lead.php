@@ -32,6 +32,20 @@ class Lead extends Model
 
     public const SOURCES = ['website', 'referral', 'social_media', 'email_campaign', 'trade_show', 'other'];
 
+    public const FUNNEL_GENERAL = 'general';
+
+    public const FUNNEL_CORNERSTONE = 'cornerstone';
+
+    public const FUNNELS = [
+        self::FUNNEL_GENERAL,
+        self::FUNNEL_CORNERSTONE,
+    ];
+
+    public const FUNNEL_LABELS = [
+        self::FUNNEL_GENERAL => 'Sales pipeline',
+        self::FUNNEL_CORNERSTONE => 'Cornerstone / spec homes',
+    ];
+
     protected $fillable = [
         'first_name',
         'last_name',
@@ -41,6 +55,7 @@ class Lead extends Model
         'project_details',
         'source',
         'submitted_at',
+        'funnel',
         'status',
         'priority',
         'estimated_value_cents',

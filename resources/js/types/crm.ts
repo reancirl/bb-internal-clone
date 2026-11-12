@@ -1,6 +1,13 @@
 // Shared types for the CRM Pipeline feature. These mirror the Lead and
 // LeadActivity models as serialized by LeadController.
 
+export type LeadFunnel = 'general' | 'cornerstone';
+
+export const LEAD_FUNNELS: { value: LeadFunnel; label: string }[] = [
+  { value: 'general', label: 'Sales pipeline' },
+  { value: 'cornerstone', label: 'Cornerstone / spec homes' },
+];
+
 export interface Lead {
   id: number;
   first_name: string;
@@ -19,6 +26,7 @@ export interface Lead {
     | 'lost';
   priority: 'low' | 'medium' | 'high';
   source: string;
+  funnel: LeadFunnel;
   estimated_value_cents: number | null;
   next_follow_up_date: string | null;
   assigned_to_user_id: number | null;
@@ -40,6 +48,7 @@ export interface NewLead {
   status?: Lead['status'];
   priority?: Lead['priority'];
   source?: string;
+  funnel?: LeadFunnel;
   estimated_value_cents?: number | null;
   next_follow_up_date?: string | null;
   assigned_to_user_id?: number | null;

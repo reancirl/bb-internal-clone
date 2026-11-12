@@ -69,3 +69,17 @@ Anything written into `docs/` remains local to one machine. If the repository is
 this decision can be revisited and the files consolidated under `docs/`.
 
 **Related.** D-002, SEC-004.
+
+---
+
+## D-006 · 2026-11-12 · A lead belongs to one funnel, and both funnels share the same stages
+
+**Why.** Spec-home sales need a board of their own. A second copy of the stage list would drift, and
+resetting the stage on a move would throw away the sales work already done.
+
+**Consequences.** `leads.funnel` is `general` (the existing sales pipeline) or `cornerstone`. The
+column default is `general`, so website intake and every existing lead stay on the sales board.
+Moving a lead changes only the funnel. Pipeline analytics and both dashboards are filtered so the two
+funnels are not added together. The flat `/leads` inbox still shows every lead.
+
+**Related.** FEAT-002.

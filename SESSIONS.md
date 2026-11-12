@@ -234,3 +234,34 @@ filesystem. Fixed as DX-003.
 
 **Recommended next task.** Confirm FEAT-001 with a real text. Then BUG-005 as before.
 
+---
+
+## 2026-11-12 · Session 7 · FEAT-002 Cornerstone lead funnel
+
+**Investigated.** The CRM has one kanban at `/admin/leads` and one analytics page, both loading every
+lead. `Lead` had statuses and no funnel. Website intake creates a lead with `source = website` and
+does not choose a board.
+
+**Changed.** Branch `feat/FEAT-002-cornerstone-lead-funnel` (from `lowe-dev`). `leads.funnel` with
+default `general`. Pipeline, analytics, and both dashboards filter by funnel. Create and edit can set
+the funnel. A move logs an activity and leaves the stage alone. The kanban drop target follows the
+pointer, so a card over a column title highlights that column.
+
+**Tested.** `./vendor/bin/phpunit` 298 pass, 1757 assertions. `vendor/bin/pint --dirty` clean. Local
+`php artisan migrate` applied `2026_11_12_000001_add_funnel_to_leads_table`. Browser: empty
+Cornerstone board, moved Browser Check onto it (stayed in New), analytics showed that one deal, then
+moved the lead back.
+
+**Unfinished.** Nothing on the funnel. The email-notifications checkbox hide ships in its own commit
+and is not part of FEAT-002.
+
+**Problems encountered.** None in the feature. `tsc` still reports the existing BUG-011 error, plus
+`dashboard.tsx` reading `submitted_at`, which is not on the Lead type and was already true before
+this change.
+
+**Decisions.** D-006.
+
+**New task IDs.** FEAT-002.
+
+**Recommended next task.** BUG-005.
+

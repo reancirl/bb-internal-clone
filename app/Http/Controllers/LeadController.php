@@ -20,9 +20,10 @@ class LeadController extends Controller
     public function dashboard(): Response
     {
         return Inertia::render('dashboard', [
-            'leads' => Lead::orderByDesc('created_at')->get(),
+            'leads' => Lead::where('funnel', Lead::FUNNEL_GENERAL)->orderByDesc('created_at')->get(),
             'users' => $this->assignableUsers(),
             'recentActivities' => LeadActivity::with(['lead:id,first_name,last_name,status', 'user:id,name'])
+                ->whereHas('lead', fn ($query) => $query->where('funnel', Lead::FUNNEL_GENERAL))
                 ->orderByDesc('created_at')
                 ->orderByDesc('id')
                 ->limit(8)
@@ -55,19 +56,33 @@ class LeadController extends Controller
         ]);
     }
 
-    public function pipeline(): Response
+    public function pipeline(Request $request): Response|RedirectResponse
     {
+        $funnel = $this->requestedFunnel($request, 'admin.leads.index');
+
+        if ($funnel instanceof RedirectResponse) {
+            return $funnel;
+        }
+
         return Inertia::render('admin/leads/index', [
-            'leads' => Lead::orderByDesc('created_at')->get(),
+            'leads' => Lead::where('funnel', $funnel)->orderByDesc('created_at')->get(),
             'users' => $this->assignableUsers(),
+            'funnel' => $funnel,
         ]);
     }
 
-    public function analytics(): Response
+    public function analytics(Request $request): Response|RedirectResponse
     {
+        $funnel = $this->requestedFunnel($request, 'admin.leads.analytics');
+
+        if ($funnel instanceof RedirectResponse) {
+            return $funnel;
+        }
+
         return Inertia::render('admin/leads/analytics', [
-            'leads' => Lead::orderByDesc('created_at')->get(),
+            'leads' => Lead::where('funnel', $funnel)->orderByDesc('created_at')->get(),
             'users' => $this->assignableUsers(),
+            'funnel' => $funnel,
         ]);
     }
 
@@ -91,6 +106,7 @@ class LeadController extends Controller
             'build_location' => ['nullable', 'string', 'max:255'],
             'project_details' => ['nullable', 'string'],
             'source' => ['nullable', Rule::in(Lead::SOURCES)],
+            'funnel' => ['nullable', Rule::in(Lead::FUNNELS)],
             'status' => ['nullable', Rule::in(Lead::STATUSES)],
             'priority' => ['nullable', Rule::in(Lead::PRIORITIES)],
             'estimated_value_cents' => ['nullable', 'integer', 'min:0'],
@@ -101,6 +117,7 @@ class LeadController extends Controller
         $lead = Lead::create([
             ...$data,
             'source' => $data['source'] ?? 'other',
+            'funnel' => $data['funnel'] ?? Lead::FUNNEL_GENERAL,
             'status' => $data['status'] ?? Lead::STATUS_NEW,
             'priority' => $data['priority'] ?? 'medium',
             'submitted_at' => now(),
@@ -127,6 +144,7 @@ class LeadController extends Controller
             'build_location' => ['sometimes', 'nullable', 'string', 'max:255'],
             'project_details' => ['sometimes', 'nullable', 'string'],
             'source' => ['sometimes', Rule::in(Lead::SOURCES)],
+            'funnel' => ['sometimes', Rule::in(Lead::FUNNELS)],
             'status' => ['sometimes', Rule::in(Lead::STATUSES)],
             'priority' => ['sometimes', Rule::in(Lead::PRIORITIES)],
             'estimated_value_cents' => ['sometimes', 'nullable', 'integer', 'min:0'],
@@ -136,7 +154,18 @@ class LeadController extends Controller
         ]);
 
         $previousStatus = $lead->status;
+        $previousFunnel = $lead->funnel;
         $lead->fill($data);
+
+        if (array_key_exists('funnel', $data) && $data['funnel'] !== $previousFunnel) {
+            $lead->activities()->create([
+                'user_id' => $request->user()->id,
+                'activity_type' => 'note',
+                'title' => 'Moved to '.Lead::FUNNEL_LABELS[$data['funnel']],
+                'description' => 'Lead moved from '.Lead::FUNNEL_LABELS[$previousFunnel].' to '.Lead::FUNNEL_LABELS[$data['funnel']].'. Stage unchanged.',
+                'completed_at' => now(),
+            ]);
+        }
 
         if (array_key_exists('status', $data) && $data['status'] !== $previousStatus) {
             $lead->won_at = $data['status'] === Lead::STATUS_WON ? now() : null;
@@ -156,18 +185,23 @@ class LeadController extends Controller
 
         $lead->save();
 
-        $message = $lead->wasChanged('status')
-            ? 'Lead moved to '.ucwords(str_replace('_', ' ', $lead->status)).'.'
-            : 'Lead updated.';
+        $message = match (true) {
+            $lead->wasChanged('status') => 'Lead moved to '.ucwords(str_replace('_', ' ', $lead->status)).'.',
+            $lead->wasChanged('funnel') => 'Lead moved to '.Lead::FUNNEL_LABELS[$lead->funnel].'.',
+            default => 'Lead updated.',
+        };
 
         return back()->with('success', $message);
     }
 
     public function destroy(Lead $lead): RedirectResponse
     {
+        $funnel = $lead->funnel;
         $lead->delete();
 
-        return redirect()->route('admin.leads.index')->with('success', 'Lead deleted.');
+        return redirect()
+            ->route('admin.leads.index', $funnel === Lead::FUNNEL_GENERAL ? [] : ['funnel' => $funnel])
+            ->with('success', 'Lead deleted.');
     }
 
     public function storeActivity(Request $request, Lead $lead): RedirectResponse
@@ -280,6 +314,21 @@ class LeadController extends Controller
         });
 
         return redirect()->route('projects.show', $project)->with('success', 'Project created from lead.');
+    }
+
+    /**
+     * The board being viewed. An unknown value sends the user back to that
+     * board's default funnel instead of rendering a mixed list.
+     */
+    private function requestedFunnel(Request $request, string $route): string|RedirectResponse
+    {
+        $funnel = $request->query('funnel', Lead::FUNNEL_GENERAL);
+
+        if (! is_string($funnel) || ! in_array($funnel, Lead::FUNNELS, true)) {
+            return redirect()->route($route);
+        }
+
+        return $funnel;
     }
 
     /**

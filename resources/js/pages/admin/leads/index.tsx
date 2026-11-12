@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { Lead, NewLead, CrmUser } from '@/types/crm';
+import { Lead, NewLead, CrmUser, LEAD_FUNNELS, type LeadFunnel } from '@/types/crm';
 import { LeadCard } from '@/components/leads/lead-card';
 import { LeadFormModal } from '@/components/leads/lead-form-modal';
 import {
+  CollisionDetection,
   DndContext,
   DragEndEvent,
   DragOverEvent,
   DragOverlay,
   DragStartEvent,
   PointerSensor,
-  closestCorners,
+  pointerWithin,
+  rectIntersection,
   useDroppable,
   useSensor,
   useSensors,
@@ -66,12 +68,26 @@ const breadcrumbs: BreadcrumbItem[] = [
   { title: 'CRM Pipeline', href: '/admin/leads' },
 ];
 
+// closestCorners measures a tall column by its four corners, so a card held
+// over the title stays closest to the column it came from. The body only
+// wins once the card is lower. The column under the pointer is the target,
+// including the header, on every stage.
+const columnCollision: CollisionDetection = (args) => {
+  const droppableContainers = args.droppableContainers.filter((container) => container.id !== args.active.id);
+  const hits = pointerWithin({ ...args, droppableContainers });
+  const collisions = hits.length > 0 ? hits : rectIntersection({ ...args, droppableContainers });
+  const column = collisions.find((hit) => STATUSES.includes(hit.id as Lead['status']));
+  if (!column) return collisions;
+  return [column, ...collisions.filter((hit) => hit.id !== column.id)];
+};
+
 interface LeadsIndexProps {
   leads: Lead[];
   users: CrmUser[];
+  funnel: LeadFunnel;
 }
 
-export default function LeadsIndex({ leads: serverLeads, users }: LeadsIndexProps) {
+export default function LeadsIndex({ leads: serverLeads, users, funnel }: LeadsIndexProps) {
   // Local copy so drag-and-drop updates instantly; re-synced whenever the
   // server sends fresh props (after a patch/post round-trip).
   const [leads, setLeads] = useState<Lead[]>(serverLeads);
@@ -243,12 +259,17 @@ export default function LeadsIndex({ leads: serverLeads, users }: LeadsIndexProp
           <div>
             <h1 className="text-foreground text-2xl font-semibold">CRM Pipeline</h1>
             <p className="text-muted-foreground text-sm">
-              Kanban board for tracking leads through the sales pipeline.
+              {funnel === 'cornerstone'
+                ? 'Same stages as the sales pipeline. A lead keeps its stage when it moves here.'
+                : 'Kanban board for tracking leads through the sales pipeline.'}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" asChild>
-              <Link href="/admin/leads/analytics" prefetch>
+              <Link
+                href={funnel === 'general' ? '/admin/leads/analytics' : `/admin/leads/analytics?funnel=${funnel}`}
+                prefetch
+              >
                 <BarChart3 className="mr-2 h-4 w-4" />
                 Analytics
               </Link>
@@ -258,6 +279,26 @@ export default function LeadsIndex({ leads: serverLeads, users }: LeadsIndexProp
               New Lead
             </Button>
           </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {LEAD_FUNNELS.map((item) => (
+            <Button
+              key={item.value}
+              size="sm"
+              variant={funnel === item.value ? 'default' : 'outline'}
+              onClick={() => {
+                if (item.value === funnel) return;
+                router.get(
+                  '/admin/leads',
+                  item.value === 'general' ? {} : { funnel: item.value },
+                  { preserveScroll: true },
+                );
+              }}
+            >
+              {item.label}
+            </Button>
+          ))}
         </div>
 
         {/* Filters */}
@@ -306,11 +347,17 @@ export default function LeadsIndex({ leads: serverLeads, users }: LeadsIndexProp
             <Search className="text-muted-foreground/40 h-10 w-10" />
             <div>
               <p className="text-foreground font-medium">
-                {leads.length === 0 ? 'No leads yet' : 'No leads match your filters'}
+                {leads.length === 0
+                  ? funnel === 'cornerstone'
+                    ? 'No leads in this funnel'
+                    : 'No leads yet'
+                  : 'No leads match your filters'}
               </p>
               <p className="text-muted-foreground text-sm">
                 {leads.length === 0
-                  ? 'Create your first lead to start the pipeline.'
+                  ? funnel === 'cornerstone'
+                    ? 'Move a lead here from the sales pipeline, or create one on this board.'
+                    : 'Create your first lead to start the pipeline.'
                   : 'Try adjusting your search or filter criteria.'}
               </p>
             </div>
@@ -328,7 +375,7 @@ export default function LeadsIndex({ leads: serverLeads, users }: LeadsIndexProp
         ) : (
           <DndContext
             sensors={sensors}
-            collisionDetection={closestCorners}
+            collisionDetection={columnCollision}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
@@ -366,6 +413,7 @@ export default function LeadsIndex({ leads: serverLeads, users }: LeadsIndexProp
           onSave={saveLead}
           saving={savingLead}
           lead={editLead}
+          defaultFunnel={funnel}
           onDelete={deleteLead}
         />
 

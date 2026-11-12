@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
-import { NewLead, type CrmUser, type Lead } from '@/types/crm';
+import { LEAD_FUNNELS, NewLead, type CrmUser, type Lead, type LeadFunnel } from '@/types/crm';
 import {
   Dialog,
   DialogContent,
@@ -32,6 +32,8 @@ interface LeadFormModalProps {
   lead?: Lead | null;
   /** Edit mode only: called after the inline confirmation step. */
   onDelete?: () => void;
+  /** Funnel a new lead is added to. The board the user is viewing. */
+  defaultFunnel?: LeadFunnel;
 }
 
 const leadSources = ['website', 'referral', 'social_media', 'email_campaign', 'trade_show', 'other'];
@@ -45,6 +47,7 @@ const emptyForm = {
   project_details: '',
   priority: 'medium' as Lead['priority'],
   source: 'website',
+  funnel: 'general' as LeadFunnel,
   estimated_value_dollars: '',
   next_follow_up_date: '',
   assigned_to_user_id: '',
@@ -60,6 +63,7 @@ function formFromLead(lead: Lead): typeof emptyForm {
     project_details: lead.project_details ?? '',
     priority: lead.priority,
     source: lead.source || 'website',
+    funnel: lead.funnel,
     estimated_value_dollars:
       lead.estimated_value_cents !== null ? (lead.estimated_value_cents / 100).toString() : '',
     next_follow_up_date: lead.next_follow_up_date ?? '',
@@ -80,6 +84,7 @@ export function LeadFormModal({
   saving = false,
   lead = null,
   onDelete,
+  defaultFunnel = 'general',
 }: LeadFormModalProps) {
   const { errors } = usePage().props;
   const isEdit = lead !== null;
@@ -91,9 +96,9 @@ export function LeadFormModal({
   // Populate from the lead being edited (or blank for create) each time the
   // dialog opens; reset when it closes so stale values never flash.
   useEffect(() => {
-    setForm(open && lead ? formFromLead(lead) : emptyForm);
+    setForm(open && lead ? formFromLead(lead) : { ...emptyForm, funnel: defaultFunnel });
     setConfirmingDelete(false);
-  }, [open, lead]);
+  }, [open, lead, defaultFunnel]);
 
   const handleSave = () => {
     if (!form.first_name.trim() || !form.last_name.trim() || !form.email.trim() || !form.phone.trim()) return;
@@ -109,6 +114,7 @@ export function LeadFormModal({
       project_details: form.project_details.trim() || null,
       priority: form.priority,
       source: form.source || 'website',
+      funnel: form.funnel,
       estimated_value_cents: form.estimated_value_dollars
         ? Math.round(parseFloat(form.estimated_value_dollars) * 100)
         : null,
@@ -129,8 +135,8 @@ export function LeadFormModal({
           <DialogTitle>{isEdit ? 'Edit Lead' : 'New Lead'}</DialogTitle>
           <DialogDescription>
             {isEdit
-              ? `Update ${lead.first_name} ${lead.last_name}'s details.`
-              : 'Add a lead to the sales pipeline.'}
+              ? `Update ${lead.first_name} ${lead.last_name}'s details. Changing the funnel keeps the current stage.`
+              : 'Add a lead to the funnel you are viewing.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -231,6 +237,23 @@ export function LeadFormModal({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="funnel">Funnel</Label>
+            <Select value={form.funnel} onValueChange={(v) => set('funnel', v)}>
+              <SelectTrigger id="funnel">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LEAD_FUNNELS.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FieldError message={errors.funnel} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">

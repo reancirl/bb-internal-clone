@@ -19,9 +19,10 @@ class DashboardController extends Controller
                 'admins_total' => User::where('role', User::ROLE_ADMIN)->count(),
                 'crew_total' => User::where('role', User::ROLE_CREW)->count(),
             ],
-            'leads' => Lead::orderByDesc('created_at')->get(),
+            'leads' => Lead::where('funnel', Lead::FUNNEL_GENERAL)->orderByDesc('created_at')->get(),
             'users' => User::orderBy('name')->get(['id', 'name', 'email', 'role']),
             'recentActivities' => LeadActivity::with(['lead:id,first_name,last_name,status', 'user:id,name'])
+                ->whereHas('lead', fn ($query) => $query->where('funnel', Lead::FUNNEL_GENERAL))
                 ->orderByDesc('created_at')
                 ->orderByDesc('id')
                 ->limit(6)
