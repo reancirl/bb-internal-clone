@@ -111,21 +111,6 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                             </div>
                         )}
 
-                        <div className="flex items-start gap-3">
-                            <Checkbox
-                                id="email_notifications"
-                                checked={data.email_notifications}
-                                onCheckedChange={(checked) => setData('email_notifications', checked === true)}
-                            />
-                            <div className="grid gap-0.5">
-                                <Label htmlFor="email_notifications">Email notifications</Label>
-                                <p className="text-muted-foreground text-sm">
-                                    Get emailed about job assignments, new leads, change orders, and clock-out reminders. Turn off to stop all
-                                    notification emails.
-                                </p>
-                            </div>
-                        </div>
-
                         <div className="grid gap-2">
                             <Label htmlFor="phone">Mobile number</Label>
 
