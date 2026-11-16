@@ -80,5 +80,10 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('api-leads', function (Request $request) {
             return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
         });
+
+        // HubSpot contact webhooks. One request can carry several events.
+        RateLimiter::for('api-hubspot', function (Request $request) {
+            return Limit::perMinute(60)->by($request->ip());
+        });
     }
 }

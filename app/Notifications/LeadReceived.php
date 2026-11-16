@@ -28,9 +28,20 @@ class LeadReceived extends Notification implements ShouldQueue
 
         return (new MailMessage)
             ->subject('New lead: '.$name.($this->lead->build_location ? ' — '.$this->lead->build_location : ''))
-            ->line("{$name} just submitted an inquiry through the website.")
+            ->line("{$name} just submitted an inquiry through {$this->origin()}.")
             ->line('Phone: '.$this->lead->phone.' · Email: '.$this->lead->email)
             ->lineIf((bool) $this->lead->project_details, 'Details: '.str($this->lead->project_details)->limit(200))
             ->action('View in the pipeline', url('/admin/leads/'.$this->lead->id));
+    }
+
+    private function origin(): string
+    {
+        return match ($this->lead->source) {
+            'google_ads' => 'Google Ads',
+            'meta_ads' => 'Meta Ads',
+            'hubspot' => 'HubSpot',
+            'website' => 'the website',
+            default => str_replace('_', ' ', (string) $this->lead->source),
+        };
     }
 }

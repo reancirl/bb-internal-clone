@@ -161,6 +161,7 @@ class EmailNotificationTest extends TestCase
         ]);
         $leadMail = (new LeadReceived($lead))->toMail($worker);
         $this->assertSame('New lead: John Smith — Gillette', $leadMail->subject);
+        $this->assertStringContainsString('through the website', implode(' ', $leadMail->introLines));
         $this->assertStringContainsString('/admin/leads/'.$lead->id, $leadMail->actionUrl);
 
         $job = ProjectJob::factory()->create([

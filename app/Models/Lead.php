@@ -30,7 +30,7 @@ class Lead extends Model
 
     public const PRIORITIES = ['low', 'medium', 'high'];
 
-    public const SOURCES = ['website', 'referral', 'social_media', 'email_campaign', 'trade_show', 'other'];
+    public const SOURCES = ['website', 'google_ads', 'meta_ads', 'hubspot', 'referral', 'social_media', 'email_campaign', 'trade_show', 'other'];
 
     public const FUNNEL_GENERAL = 'general';
 
@@ -55,6 +55,8 @@ class Lead extends Model
         'project_details',
         'source',
         'submitted_at',
+        'external_source',
+        'external_id',
         'funnel',
         'status',
         'priority',

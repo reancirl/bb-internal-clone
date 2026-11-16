@@ -274,3 +274,21 @@ alerts stay off production until the maintainer asks to ship them. The Cornersto
 hidden email-notifications checkbox stay.
 
 **Unfinished.** FEAT-001 remains in `22a0ae7`.
+
+---
+
+## 2026-11-16 · Session 8 · FEAT-003 HubSpot lead intake
+
+**Investigated.** Google Ads and Meta leads are created as HubSpot contacts. Make cannot be used to push them.
+
+**Changed.** `POST /api/webhooks/hubspot` verifies HubSpot's v3 signature, reads the new contact, and stores `google_ads`, `meta_ads`, or `hubspot` on the sales board. The same contact id does not notify again. Cherry-picked onto `main` without FEAT-001. The HubSpot project beside this repo points at `https://internal.buffalobuiltusa.com/api/webhooks/hubspot` and is not uploaded.
+
+**Tested.** `./vendor/bin/phpunit` 303 pass, 1783 assertions on `feat/FEAT-003-make-lead-webhook` before the main commit.
+
+**Unfinished.** The HubSpot app is not uploaded. Production still needs `HUBSPOT_CLIENT_SECRET` and `HUBSPOT_ACCESS_TOKEN`, and `php artisan migrate`.
+
+**Decisions.** HubSpot posts contact creation to this app. FEAT-001 stays off `main`.
+
+**New task IDs.** FEAT-003.
+
+**Recommended next task.** Upload the HubSpot project after this commit is on the server. Then BUG-005.

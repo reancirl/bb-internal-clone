@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Api\Admin\RateController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\HubSpotLeadController;
 use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\PriceBookController;
 use App\Http\Controllers\Api\TimeCardController;
@@ -31,6 +32,11 @@ Route::post('login', [AuthController::class, 'login'])
 // it leaks, unbounded submissions would spam every opted-in admin by email.
 Route::post('leads', [LeadController::class, 'store'])
     ->middleware(['auth:sanctum', 'abilities:leads:create', 'throttle:api-leads']);
+
+// HubSpot notifies this app when a contact is created. The request is signed
+// with the app client secret. The contact itself is read back from HubSpot.
+Route::post('webhooks/hubspot', [HubSpotLeadController::class, 'store'])
+    ->middleware('throttle:api-hubspot');
 
 // Authenticated mobile app routes
 Route::middleware(['auth:sanctum', 'abilities:mobile'])->group(function () {

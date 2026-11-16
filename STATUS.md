@@ -1,6 +1,6 @@
 # Project Status — BuffaloBuilt Internal
 
-**Last updated:** 2026-11-12 (Session 7, FEAT-002) · **Baseline commit:** `f6dafa0`
+**Last updated:** 2026-11-16 (Session 8, FEAT-003) · **Baseline commit:** `f6dafa0`
 
 This file is the single source of truth for project state. Read it in full at the start of every
 session. Verify its claims against the code before acting on them.
@@ -61,14 +61,14 @@ the suite now runs on the engine production actually uses. The backlog is High a
 
 | Total | 🔴 Pending | 🟡 In Progress | 🟢 Fixed | 🔵 Verified | ⚪ Deferred | ❌ Won't Fix |
 |---|---|---|---|---|---|---|
-| 54 | 42 | 0 | 1 | 9 | 2 | 0 |
+| 55 | 42 | 0 | 1 | 10 | 2 | 0 |
 
 By priority (not yet 🔵 Verified): **Critical 0** · **High 7** · **Medium 18** · **Low 20**
 
 ## Current task
 
-None. **FEAT-002** (Cornerstone lead funnel) is 🔵 Verified. **FEAT-001** (SMS lead alerts)
-is 🟢 Fixed in `22a0ae7` and was taken off `main` on 2026-11-12 until the maintainer asks to ship it.
+None. **FEAT-003** (HubSpot lead intake) is 🔵 Verified and is on `main`. **FEAT-002** (Cornerstone lead funnel) is 🔵 Verified. **FEAT-001** (SMS lead alerts)
+is 🟢 Fixed in `22a0ae7` and stays off `main` until the maintainer asks to ship it.
 
 ## Next recommended tasks
 
@@ -143,6 +143,7 @@ Status key: 🔴 Pending · 🟡 In Progress · 🟢 Fixed · 🔵 Verified · �
 | DX-003 | Low | Tests | Inertia's test helper looks for pages in `resources/js/Pages` by default; this repo uses `resources/js/pages`, so 17 `assertInertia` tests pass on Windows/macOS (case-insensitive) and fail on Linux | Publish `config/inertia.php` pointing both `page_paths` at `js/pages` | — | 🔵 Verified 2026-11-09 · `./vendor/bin/phpunit` 281 pass on Linux (264 before) | — |
 | FEAT-001 | Medium | Notifications | Admins only hear about new leads by email; the maintainer wants a text message on their phone for every lead | `users.phone` + `users.sms_notifications` (off by default); `SmsChannel` on `LeadReceived`; `SmsSender` with `log` (default) and `textbee` drivers chosen by `SMS_DRIVER`; profile fields and a throttled "Send test text" button | — | 🟢 Fixed 2026-11-09 · `22a0ae7` · taken off `main` 2026-11-12 until the maintainer asks to ship it | — |
 | FEAT-002 | Medium | Leads | Spec-home sales need their own board so those leads can be moved off the main pipeline | `leads.funnel` (`general` default, `cornerstone`); same stages; pipeline, analytics, and both dashboards filter by funnel; move keeps the stage. Column drop target follows the pointer, including the column title | — | 🔵 Verified 2026-11-12 · `a13d36c` · `./vendor/bin/phpunit` 298 pass · browser pass on `/admin/leads` | — |
+| FEAT-003 | Medium | Leads | Google Ads and Meta leads are created in HubSpot, and this CRM needs them on the sales board. *2026-11-16: Make was dropped; HubSpot posts the contact-created event itself.* | `POST /api/webhooks/hubspot` verifies the v3 signature, reads the contact, stores `google_ads`, `meta_ads`, or `hubspot`. The HubSpot contact id is the idempotency key | — | 🔵 Verified 2026-11-16 · on `main` · `./vendor/bin/phpunit` 303 pass on the feature branch | — |
 
 ---
 

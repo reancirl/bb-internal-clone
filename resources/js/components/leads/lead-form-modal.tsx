@@ -36,7 +36,7 @@ interface LeadFormModalProps {
   defaultFunnel?: LeadFunnel;
 }
 
-const leadSources = ['website', 'referral', 'social_media', 'email_campaign', 'trade_show', 'other'];
+const leadSources = ['website', 'google_ads', 'meta_ads', 'hubspot', 'referral', 'social_media', 'email_campaign', 'trade_show', 'other'];
 
 const emptyForm = {
   first_name: '',

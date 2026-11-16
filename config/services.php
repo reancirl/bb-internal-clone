@@ -28,6 +28,13 @@ return [
         'key' => env('RESEND_KEY'),
     ],
 
+    // HubSpot private app. The client secret verifies webhook signatures.
+    // The access token reads the contact HubSpot just created.
+    'hubspot' => [
+        'client_secret' => env('HUBSPOT_CLIENT_SECRET'),
+        'access_token' => env('HUBSPOT_ACCESS_TOKEN'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
