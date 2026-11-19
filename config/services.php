@@ -28,6 +28,20 @@ return [
         'key' => env('RESEND_KEY'),
     ],
 
+    // Text messages. 'log' (default) writes them to the log; 'ringcentral'
+    // sends through the RingCentral SMS API.
+    'sms' => [
+        'driver' => env('SMS_DRIVER', 'log'),
+    ],
+
+    'ringcentral' => [
+        'client_id' => env('RINGCENTRAL_CLIENT_ID'),
+        'client_secret' => env('RINGCENTRAL_CLIENT_SECRET'),
+        'jwt' => env('RINGCENTRAL_JWT'),
+        'from' => env('RINGCENTRAL_FROM'),
+        'server_url' => env('RINGCENTRAL_SERVER_URL', 'https://platform.ringcentral.com'),
+    ],
+
     // HubSpot private app. The client secret verifies webhook signatures.
     // The access token reads the contact HubSpot just created.
     'hubspot' => [

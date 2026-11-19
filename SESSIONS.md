@@ -267,16 +267,6 @@ this change.
 
 ---
 
-## 2026-11-12 · Session 7b · Take FEAT-001 off main
-
-**Changed.** `22a0ae7` had already been fast-forwarded onto `main`. Reverted that commit so text
-alerts stay off production until the maintainer asks to ship them. The Cornerstone funnel and the
-hidden email-notifications checkbox stay.
-
-**Unfinished.** FEAT-001 remains in `22a0ae7`.
-
----
-
 ## 2026-11-16 · Session 8 · FEAT-003 HubSpot lead intake
 
 **Investigated.** Google Ads and Meta leads are created as HubSpot contacts. Make cannot be used to push them.
@@ -287,8 +277,37 @@ hidden email-notifications checkbox stay.
 
 **Unfinished.** The HubSpot app is not uploaded. Production still needs `HUBSPOT_CLIENT_SECRET` and `HUBSPOT_ACCESS_TOKEN`, and `php artisan migrate`.
 
-**Decisions.** HubSpot posts contact creation to this app. FEAT-001 stays off `main`.
+**Decisions.** HubSpot posts contact creation to this app.
 
 **New task IDs.** FEAT-003.
 
 **Recommended next task.** Upload the HubSpot project after this commit is on the server. Then BUG-005.
+
+---
+
+## 2026-11-19 · Session 9 · FEAT-001 RingCentral replaces textbee
+
+**Investigated.** Text alerts are FEAT-001. The code is on `lowe-dev` (`5f4d8d3`), not on `main`.
+`SmsSender` was bound from `SMS_DRIVER` to `LogSmsSender` or `TextbeeSmsSender`. RingCentral's SMS
+API authenticates with a JWT exchanged at `/restapi/oauth/token`, then posts to
+`/restapi/v1.0/account/~/extension/~/sms` from a number on that extension.
+
+**Changed.** Branch `feat/FEAT-001-ringcentral-sms` from `lowe-dev`. `RingCentralSmsSender` replaces
+`TextbeeSmsSender`. The access token is cached until a minute before it expires. Profile, message
+text, and the test-text button are unchanged. Local `.env` was switched from `SMS_DRIVER=textbee` to
+`log` with empty RingCentral keys, so a removed driver cannot throw. That file is gitignored.
+
+**Tested.** `./vendor/bin/phpunit` 299 pass, 1762 assertions, on SQLite. `vendor/bin/pint --dirty` clean.
+No browser pass: the profile page was not changed.
+
+**Unfinished.** Nothing on the sender. A real test to `+12266399311` was accepted by RingCentral on
+2026-11-19 and the phone received it. The maintainer asked to ship this to production.
+
+**Problems encountered.** A second `Http::fake()` in one test stacked on the first stub instead of
+replacing it, so the empty-token case was split into its own test.
+
+**Decisions.** D-007.
+
+**New task IDs.** None. FEAT-001's scope changed; the row was edited, not cloned.
+
+**Recommended next task.** Ship FEAT-001 to production, then BUG-005.

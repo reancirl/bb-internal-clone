@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\ChangeOrder;
+use App\Support\Notify;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -19,7 +20,7 @@ class ChangeOrderDecided extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return Notify::channels($notifiable, ['mail']);
     }
 
     public function toMail(object $notifiable): MailMessage

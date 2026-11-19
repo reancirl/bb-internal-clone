@@ -83,3 +83,18 @@ Moving a lead changes only the funnel. Pipeline analytics and both dashboards ar
 funnels are not added together. The flat `/leads` inbox still shows every lead.
 
 **Related.** FEAT-002.
+
+---
+
+## D-007 · 2026-11-19 · Lead texts go out through RingCentral, not textbee
+
+**Why.** The maintainer has a RingCentral account and asked to replace textbee as the SMS provider.
+The alert path (who is texted, and what the message says) did not change.
+
+**Consequences.** `SMS_DRIVER=ringcentral` uses `RingCentralSmsSender`. textbee and its env vars are
+gone. Credentials stay in `RINGCENTRAL_CLIENT_ID`, `RINGCENTRAL_CLIENT_SECRET`, `RINGCENTRAL_JWT`,
+and `RINGCENTRAL_FROM`. The from-number has to belong to the JWT user's extension and have the
+SmsSender feature. `log` remains the default. Delivery to a Philippine number depends on that
+RingCentral account; the app does not fall back to another provider.
+
+**Related.** FEAT-001.

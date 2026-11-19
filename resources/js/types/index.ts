@@ -51,6 +51,8 @@ export interface User {
     role: UserRole;
     avatar?: string;
     email_notifications: boolean;
+    phone: string | null;
+    sms_notifications: boolean;
     email_verified_at: string | null;
     created_at: string;
     updated_at: string;
