@@ -267,6 +267,24 @@ this change.
 
 ---
 
+## 2026-11-16 · Session 8 · FEAT-003 HubSpot lead intake
+
+**Investigated.** Google Ads and Meta leads are created as HubSpot contacts. Make cannot be used to push them.
+
+**Changed.** `POST /api/webhooks/hubspot` verifies HubSpot's v3 signature, reads the new contact, and stores `google_ads`, `meta_ads`, or `hubspot` on the sales board. The same contact id does not notify again. Cherry-picked onto `main` without FEAT-001. The HubSpot project beside this repo points at `https://internal.buffalobuiltusa.com/api/webhooks/hubspot` and is not uploaded.
+
+**Tested.** `./vendor/bin/phpunit` 303 pass, 1783 assertions on `feat/FEAT-003-make-lead-webhook` before the main commit.
+
+**Unfinished.** The HubSpot app is not uploaded. Production still needs `HUBSPOT_CLIENT_SECRET` and `HUBSPOT_ACCESS_TOKEN`, and `php artisan migrate`.
+
+**Decisions.** HubSpot posts contact creation to this app.
+
+**New task IDs.** FEAT-003.
+
+**Recommended next task.** Upload the HubSpot project after this commit is on the server. Then BUG-005.
+
+---
+
 ## 2026-11-19 · Session 9 · FEAT-001 RingCentral replaces textbee
 
 **Investigated.** Text alerts are FEAT-001. The code is on `lowe-dev` (`5f4d8d3`), not on `main`.
@@ -282,10 +300,8 @@ text, and the test-text button are unchanged. Local `.env` was switched from `SM
 **Tested.** `./vendor/bin/phpunit` 299 pass, 1762 assertions, on SQLite. `vendor/bin/pint --dirty` clean.
 No browser pass: the profile page was not changed.
 
-**Unfinished.** A real send. Needs `RINGCENTRAL_CLIENT_ID`, `RINGCENTRAL_CLIENT_SECRET`,
-`RINGCENTRAL_JWT`, and `RINGCENTRAL_FROM`, then `SMS_DRIVER=ringcentral`. Confirm the account can
-deliver to the Philippine number. Still not on `main`. This branch does not contain FEAT-003, which
-landed on `main` after `lowe-dev` diverged.
+**Unfinished.** Nothing on the sender. A real test to `+12266399311` was accepted by RingCentral on
+2026-11-19 and the phone received it. The maintainer asked to ship this to production.
 
 **Problems encountered.** A second `Http::fake()` in one test stacked on the first stub instead of
 replacing it, so the empty-token case was split into its own test.
@@ -294,6 +310,4 @@ replacing it, so the empty-token case was split into its own test.
 
 **New task IDs.** None. FEAT-001's scope changed; the row was edited, not cloned.
 
-**Recommended next task.** Fill the RingCentral credentials and send one test text from
-`/settings/profile`. Then BUG-005, as before.
-
+**Recommended next task.** Ship FEAT-001 to production, then BUG-005.

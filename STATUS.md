@@ -1,6 +1,6 @@
 # Project Status — BuffaloBuilt Internal
 
-**Last updated:** 2026-11-12 (Session 7, FEAT-002) · **Baseline commit:** `f6dafa0`
+**Last updated:** 2026-11-16 (Session 8, FEAT-003) · **Baseline commit:** `f6dafa0`
 
 This file is the single source of truth for project state. Read it in full at the start of every
 session. Verify its claims against the code before acting on them.
@@ -61,16 +61,13 @@ the suite now runs on the engine production actually uses. The backlog is High a
 
 | Total | 🔴 Pending | 🟡 In Progress | 🟢 Fixed | 🔵 Verified | ⚪ Deferred | ❌ Won't Fix |
 |---|---|---|---|---|---|---|
-| 54 | 42 | 0 | 1 | 9 | 2 | 0 |
+| 55 | 42 | 0 | 1 | 10 | 2 | 0 |
 
 By priority (not yet 🔵 Verified): **Critical 0** · **High 7** · **Medium 18** · **Low 20**
 
 ## Current task
 
-None. **FEAT-002** (Cornerstone lead funnel) is 🔵 Verified and is on `main`. **FEAT-001**
-(SMS lead alerts) now sends through RingCentral instead of textbee, on
-`feat/FEAT-001-ringcentral-sms` (from `lowe-dev`). Do not ship it to `main` until the
-maintainer asks.
+None. **FEAT-003** (HubSpot lead intake) is 🔵 Verified and is on `main`. **FEAT-002** (Cornerstone lead funnel) is 🔵 Verified. **FEAT-001** (SMS lead alerts) sends through RingCentral. The maintainer asked to ship it on 2026-11-19.
 
 ## Next recommended tasks
 
@@ -143,8 +140,9 @@ Status key: 🔴 Pending · 🟡 In Progress · 🟢 Fixed · 🔵 Verified · �
 | PERF-007 | Medium | Assets | `public/img/logo.png` is still the 0.96 MB / 171 MP master in the repo; only the auth pages use the new derivatives | Point the remaining `AppLogoIcon` callers at the derivatives and drop or archive the master | UX-002 | 🔴 Pending | — |
 | BUG-011 | Low | Leads | `convert.tsx:228` reads `errors.contract_price_cents`, which is not a key of `ConvertForm`; the field's validation error never renders | Use `contract_price`, the actual form key | — | 🔴 Pending | — |
 | DX-003 | Low | Tests | Inertia's test helper looks for pages in `resources/js/Pages` by default; this repo uses `resources/js/pages`, so 17 `assertInertia` tests pass on Windows/macOS (case-insensitive) and fail on Linux | Publish `config/inertia.php` pointing both `page_paths` at `js/pages` | — | 🔵 Verified 2026-11-09 · `./vendor/bin/phpunit` 281 pass on Linux (264 before) | — |
-| FEAT-001 | Medium | Notifications | Admins only hear about new leads by email; the maintainer wants a text message on their phone for every lead | `users.phone` + `users.sms_notifications` (off by default); `SmsChannel` on `LeadReceived`; `SmsSender` with `log` (default) and `ringcentral` drivers chosen by `SMS_DRIVER`; profile fields and a throttled "Send test text" button. *2026-11-19: textbee replaced by RingCentral (D-007).* | — | 🟢 Fixed 2026-11-09 · provider swapped 2026-11-19 · `82bbf26` · not on `main` | — |
+| FEAT-001 | Medium | Notifications | Admins only hear about new leads by email; the maintainer wants a text message on their phone for every lead | `users.phone` + `users.sms_notifications` (off by default); `SmsChannel` on `LeadReceived`; `SmsSender` with `log` (default) and `ringcentral` drivers chosen by `SMS_DRIVER`; profile fields and a throttled "Send test text" button. *2026-11-19: textbee replaced by RingCentral (D-007).* | — | 🟢 Fixed 2026-11-09 · provider swapped 2026-11-19 · `82bbf26` · maintainer asked to ship 2026-11-19 | — |
 | FEAT-002 | Medium | Leads | Spec-home sales need their own board so those leads can be moved off the main pipeline | `leads.funnel` (`general` default, `cornerstone`); same stages; pipeline, analytics, and both dashboards filter by funnel; move keeps the stage. Column drop target follows the pointer, including the column title | — | 🔵 Verified 2026-11-12 · `a13d36c` · `./vendor/bin/phpunit` 298 pass · browser pass on `/admin/leads` | — |
+| FEAT-003 | Medium | Leads | Google Ads and Meta leads are created in HubSpot, and this CRM needs them on the sales board. *2026-11-16: Make was dropped; HubSpot posts the contact-created event itself.* | `POST /api/webhooks/hubspot` verifies the v3 signature, reads the contact, stores `google_ads`, `meta_ads`, or `hubspot`. The HubSpot contact id is the idempotency key | — | 🔵 Verified 2026-11-16 · on `main` · `./vendor/bin/phpunit` 303 pass on the feature branch | — |
 
 ---
 
