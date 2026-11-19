@@ -265,3 +265,35 @@ this change.
 
 **Recommended next task.** BUG-005.
 
+---
+
+## 2026-11-19 · Session 9 · FEAT-001 RingCentral replaces textbee
+
+**Investigated.** Text alerts are FEAT-001. The code is on `lowe-dev` (`5f4d8d3`), not on `main`.
+`SmsSender` was bound from `SMS_DRIVER` to `LogSmsSender` or `TextbeeSmsSender`. RingCentral's SMS
+API authenticates with a JWT exchanged at `/restapi/oauth/token`, then posts to
+`/restapi/v1.0/account/~/extension/~/sms` from a number on that extension.
+
+**Changed.** Branch `feat/FEAT-001-ringcentral-sms` from `lowe-dev`. `RingCentralSmsSender` replaces
+`TextbeeSmsSender`. The access token is cached until a minute before it expires. Profile, message
+text, and the test-text button are unchanged. Local `.env` was switched from `SMS_DRIVER=textbee` to
+`log` with empty RingCentral keys, so a removed driver cannot throw. That file is gitignored.
+
+**Tested.** `./vendor/bin/phpunit` 299 pass, 1762 assertions, on SQLite. `vendor/bin/pint --dirty` clean.
+No browser pass: the profile page was not changed.
+
+**Unfinished.** A real send. Needs `RINGCENTRAL_CLIENT_ID`, `RINGCENTRAL_CLIENT_SECRET`,
+`RINGCENTRAL_JWT`, and `RINGCENTRAL_FROM`, then `SMS_DRIVER=ringcentral`. Confirm the account can
+deliver to the Philippine number. Still not on `main`. This branch does not contain FEAT-003, which
+landed on `main` after `lowe-dev` diverged.
+
+**Problems encountered.** A second `Http::fake()` in one test stacked on the first stub instead of
+replacing it, so the empty-token case was split into its own test.
+
+**Decisions.** D-007.
+
+**New task IDs.** None. FEAT-001's scope changed; the row was edited, not cloned.
+
+**Recommended next task.** Fill the RingCentral credentials and send one test text from
+`/settings/profile`. Then BUG-005, as before.
+

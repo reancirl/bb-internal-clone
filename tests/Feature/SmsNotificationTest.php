@@ -9,8 +9,8 @@ use App\Notifications\Channels\SmsChannel;
 use App\Notifications\JobAssigned;
 use App\Notifications\LeadReceived;
 use App\Support\Sms\LogSmsSender;
+use App\Support\Sms\RingCentralSmsSender;
 use App\Support\Sms\SmsSender;
-use App\Support\Sms\TextbeeSmsSender;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
@@ -115,40 +115,83 @@ class SmsNotificationTest extends TestCase
         $this->assertInstanceOf(LogSmsSender::class, app(SmsSender::class));
     }
 
-    public function test_textbee_driver_posts_recipient_and_message_with_api_key(): void
+    public function test_ringcentral_driver_exchanges_a_jwt_and_posts_the_text(): void
     {
         config([
-            'services.sms.driver' => 'textbee',
-            'services.textbee.key' => 'test-key',
-            'services.textbee.device_id' => 'device-123',
-            'services.textbee.url' => 'https://api.textbee.dev/api/v1',
+            'services.sms.driver' => 'ringcentral',
+            'services.ringcentral.client_id' => 'client-id',
+            'services.ringcentral.client_secret' => 'client-secret',
+            'services.ringcentral.jwt' => 'jwt-1',
+            'services.ringcentral.from' => '+13075550199',
+            'services.ringcentral.server_url' => 'https://platform.ringcentral.com',
         ]);
-        Http::fake(['api.textbee.dev/*' => Http::response(['data' => ['success' => true]], 201)]);
+        Http::fake([
+            'https://platform.ringcentral.com/restapi/oauth/token' => Http::response([
+                'access_token' => 'token-1',
+                'expires_in' => 7199,
+                'token_type' => 'bearer',
+            ]),
+            'https://platform.ringcentral.com/restapi/v1.0/*' => Http::response(['id' => 'msg-1']),
+        ]);
 
         $sender = app(SmsSender::class);
-        $this->assertInstanceOf(TextbeeSmsSender::class, $sender);
+        $this->assertInstanceOf(RingCentralSmsSender::class, $sender);
         $sender->send('+639171234567', 'hello');
+        $sender->send('+639171234567', 'again');
+
+        $tokenCalls = 0;
+        Http::assertSent(function ($request) use (&$tokenCalls) {
+            if ($request->url() !== 'https://platform.ringcentral.com/restapi/oauth/token') {
+                return false;
+            }
+
+            $tokenCalls++;
+
+            return $request->method() === 'POST'
+                && $request->header('Authorization') === ['Basic '.base64_encode('client-id:client-secret')]
+                && $request['grant_type'] === 'urn:ietf:params:oauth:grant-type:jwt-bearer'
+                && $request['assertion'] === 'jwt-1';
+        });
+        $this->assertSame(1, $tokenCalls, 'The access token is reused until it expires.');
 
         Http::assertSent(fn ($request) => $request->method() === 'POST'
-            && $request->url() === 'https://api.textbee.dev/api/v1/gateway/devices/device-123/send-sms'
-            && $request->header('x-api-key') === ['test-key']
-            && $request['recipients'] === ['+639171234567']
-            && $request['message'] === 'hello');
+            && $request->url() === 'https://platform.ringcentral.com/restapi/v1.0/account/~/extension/~/sms'
+            && $request->header('Authorization') === ['Bearer token-1']
+            && $request['from'] === ['phoneNumber' => '+13075550199']
+            && $request['to'] === [['phoneNumber' => '+639171234567']]
+            && $request['text'] === 'hello');
+
+        Http::assertSentCount(3);
     }
 
-    public function test_textbee_errors_and_missing_config_are_raised_not_swallowed(): void
+    public function test_ringcentral_errors_and_missing_config_are_raised_not_swallowed(): void
     {
         Http::fake(['*' => Http::response(['message' => 'Unauthorized'], 401)]);
 
         try {
-            (new TextbeeSmsSender('bad-key', 'device-123', 'https://api.textbee.dev/api/v1'))->send('+639171234567', 'x');
+            (new RingCentralSmsSender('bad-id', 'bad-secret', 'bad-jwt', '+13075550199', 'https://platform.ringcentral.com'))
+                ->send('+639171234567', 'x');
             $this->fail('A rejected request must throw so the queued job is retried and logged.');
         } catch (RequestException $e) {
             $this->assertSame(401, $e->response->status());
         }
 
         $this->expectException(RuntimeException::class);
-        (new TextbeeSmsSender(null, null, 'https://api.textbee.dev/api/v1'))->send('+639171234567', 'x');
+        (new RingCentralSmsSender(null, null, null, null, 'https://platform.ringcentral.com'))
+            ->send('+639171234567', 'x');
+    }
+
+    public function test_ringcentral_rejects_a_token_response_without_an_access_token(): void
+    {
+        Http::fake([
+            'https://platform.ringcentral.com/restapi/oauth/token' => Http::response(['token_type' => 'bearer'], 200),
+        ]);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('access token');
+
+        (new RingCentralSmsSender('other-id', 'secret', 'jwt', '+13075550199', 'https://platform.ringcentral.com'))
+            ->send('+639171234567', 'x');
     }
 
     public function test_unknown_driver_fails_loudly(): void
@@ -214,12 +257,12 @@ class SmsNotificationTest extends TestCase
             ->assertSessionHas('error', 'Save a mobile number first.');
         $this->assertSame([], $this->sent);
 
-        // Provider failure: textbee selected but not configured.
-        $this->app->bind(SmsSender::class, fn () => new TextbeeSmsSender(null, null, 'https://api.textbee.dev/api/v1'));
+        // Provider failure: RingCentral selected but not configured.
+        $this->app->bind(SmsSender::class, fn () => new RingCentralSmsSender(null, null, null, null, 'https://platform.ringcentral.com'));
 
         $withPhone = User::factory()->admin()->create(['phone' => '+639171234567']);
         $this->actingAs($withPhone)->post('/settings/profile/test-sms')
-            ->assertSessionHas('error', fn (string $msg) => str_contains($msg, 'TEXTBEE_API_KEY'));
+            ->assertSessionHas('error', fn (string $msg) => str_contains($msg, 'RINGCENTRAL_CLIENT_ID'));
     }
 
     public function test_send_test_text_is_throttled_and_requires_login(): void

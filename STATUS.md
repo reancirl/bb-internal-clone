@@ -68,7 +68,8 @@ By priority (not yet 🔵 Verified): **Critical 0** · **High 7** · **Medium 18
 ## Current task
 
 None. **FEAT-002** (Cornerstone lead funnel) is 🔵 Verified and is on `main`. **FEAT-001**
-(SMS lead alerts) is back on `lowe-dev` only, in `5f4d8d3`. Do not ship it to `main` until the
+(SMS lead alerts) now sends through RingCentral instead of textbee, on
+`feat/FEAT-001-ringcentral-sms` (from `lowe-dev`). Do not ship it to `main` until the
 maintainer asks.
 
 ## Next recommended tasks
@@ -142,7 +143,7 @@ Status key: 🔴 Pending · 🟡 In Progress · 🟢 Fixed · 🔵 Verified · �
 | PERF-007 | Medium | Assets | `public/img/logo.png` is still the 0.96 MB / 171 MP master in the repo; only the auth pages use the new derivatives | Point the remaining `AppLogoIcon` callers at the derivatives and drop or archive the master | UX-002 | 🔴 Pending | — |
 | BUG-011 | Low | Leads | `convert.tsx:228` reads `errors.contract_price_cents`, which is not a key of `ConvertForm`; the field's validation error never renders | Use `contract_price`, the actual form key | — | 🔴 Pending | — |
 | DX-003 | Low | Tests | Inertia's test helper looks for pages in `resources/js/Pages` by default; this repo uses `resources/js/pages`, so 17 `assertInertia` tests pass on Windows/macOS (case-insensitive) and fail on Linux | Publish `config/inertia.php` pointing both `page_paths` at `js/pages` | — | 🔵 Verified 2026-11-09 · `./vendor/bin/phpunit` 281 pass on Linux (264 before) | — |
-| FEAT-001 | Medium | Notifications | Admins only hear about new leads by email; the maintainer wants a text message on their phone for every lead | `users.phone` + `users.sms_notifications` (off by default); `SmsChannel` on `LeadReceived`; `SmsSender` with `log` (default) and `textbee` drivers chosen by `SMS_DRIVER`; profile fields and a throttled "Send test text" button | — | 🟢 Fixed 2026-11-09 · on `lowe-dev` at `5f4d8d3` · not on `main` | — |
+| FEAT-001 | Medium | Notifications | Admins only hear about new leads by email; the maintainer wants a text message on their phone for every lead | `users.phone` + `users.sms_notifications` (off by default); `SmsChannel` on `LeadReceived`; `SmsSender` with `log` (default) and `ringcentral` drivers chosen by `SMS_DRIVER`; profile fields and a throttled "Send test text" button. *2026-11-19: textbee replaced by RingCentral (D-007).* | — | 🟢 Fixed 2026-11-09 · provider swapped 2026-11-19 · on `feat/FEAT-001-ringcentral-sms` · not on `main` | — |
 | FEAT-002 | Medium | Leads | Spec-home sales need their own board so those leads can be moved off the main pipeline | `leads.funnel` (`general` default, `cornerstone`); same stages; pipeline, analytics, and both dashboards filter by funnel; move keeps the stage. Column drop target follows the pointer, including the column title | — | 🔵 Verified 2026-11-12 · `a13d36c` · `./vendor/bin/phpunit` 298 pass · browser pass on `/admin/leads` | — |
 
 ---
@@ -208,14 +209,14 @@ and desktop widths is needed before this moves to 🔵 Verified.
 ### FEAT-001 — SMS alerts for new leads · 🟢 Fixed
 
 Requested 2026-11-09: when this app receives a lead, text the maintainer's phone. Testing happens on a
-Philippine (+63) number; Twilio's signup rejected that number, so the first real provider is
-**textbee.dev**, where an Android phone running the textbee app sends from its own SIM.
+Philippine (+63) number. Twilio's signup rejected that number, so the first provider was textbee.dev.
+*2026-11-19: textbee is removed. RingCentral is the provider (D-007).*
 
 **Shape.** `App\Support\Sms\SmsSender` is the one interface, bound in `AppServiceProvider` from
-`SMS_DRIVER`: `log` (default, writes `[sms] <to>: <text>` to the log) or `textbee`. An unknown value
+`SMS_DRIVER`: `log` (default, writes `[sms] <to>: <text>` to the log) or `ringcentral`. An unknown value
 throws instead of silently not sending. `App\Notifications\Channels\SmsChannel` is a normal Laravel
-channel; `LeadReceived` lists it and defines `toSms()`. Another provider (Twilio, Semaphore) is one new
-`SmsSender` class and one `match` arm.
+channel; `LeadReceived` lists it and defines `toSms()`. Another provider is one new `SmsSender` class
+and one `match` arm.
 
 **Preferences stay in `Notify`.** Recipients are admins with email on *or* texts on with a number.
 Each notification's `via()` now asks `Notify::channels()` which of its channels the user accepts.
@@ -225,16 +226,20 @@ would start getting emails again; a test pins this.
 **Message.** `New lead: <name>, <location>. <phone> <link>`. The link uses `APP_URL`, so the dev
 server's `.env` must have the right one.
 
-**Unconfirmed.** textbee's docs could not be fetched from the session (host not reachable). The
-sender uses the device path `POST {TEXTBEE_URL}/gateway/devices/{TEXTBEE_DEVICE_ID}/send-sms` with an
-`x-api-key` header and `{recipients: [...], message}`, as the search results describe. Newer docs
-also mention an account-level `/gateway/send-sms`. The first real test settles which one works.
+**RingCentral.** `RingCentralSmsSender` exchanges `RINGCENTRAL_JWT` for an access token at
+`POST {RINGCENTRAL_SERVER_URL}/restapi/oauth/token` (HTTP Basic with the client id and secret,
+`grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer`) and caches that token until a minute before
+it expires. The text goes to `POST {RINGCENTRAL_SERVER_URL}/restapi/v1.0/account/~/extension/~/sms`
+as `{from: {phoneNumber}, to: [{phoneNumber}], text}`. `RINGCENTRAL_FROM` must be an E.164 number on
+the JWT user's extension with the SmsSender feature. Missing credentials throw, and a non-2xx response
+throws so the queued job is retried. A real send to the +63 phone is still unconfirmed: RingCentral
+SMS usually originates from a US or Canadian number, and that account has to be allowed to deliver there.
 
-**Verification so far.** 12 cases in `SmsNotificationTest`; breaking `LeadReceived::via` or
-`JobAssigned::via` makes them fail. Full suite 293 pass on SQLite and PostgreSQL 16. Migration
-up/down/up on SQLite. Browser pass on `/settings/profile`: validation errors, button disabled until a
-number is saved, success toast, normalised number. A lead posted to `/api/leads` went through the
-database queue and produced the text in the log.
+**Verification so far.** 13 cases in `SmsNotificationTest`; breaking `LeadReceived::via` or
+`JobAssigned::via` makes them fail. Full suite 299 pass on SQLite (`./vendor/bin/phpunit`, 2026-11-19).
+The earlier browser pass on `/settings/profile` still applies; the profile page did not change.
+A real RingCentral send has not been made: the local `.env` is back on `SMS_DRIVER=log` until the
+client id, secret, JWT, and from-number are filled in.
 
 ### FEAT-002 — Cornerstone / spec home funnel · 🔵 Verified
 

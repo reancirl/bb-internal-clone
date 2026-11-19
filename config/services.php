@@ -28,16 +28,18 @@ return [
         'key' => env('RESEND_KEY'),
     ],
 
-    // Text messages. 'log' (default) writes them to the log; 'textbee' sends
-    // through an Android phone running the textbee.dev app.
+    // Text messages. 'log' (default) writes them to the log; 'ringcentral'
+    // sends through the RingCentral SMS API.
     'sms' => [
         'driver' => env('SMS_DRIVER', 'log'),
     ],
 
-    'textbee' => [
-        'key' => env('TEXTBEE_API_KEY'),
-        'device_id' => env('TEXTBEE_DEVICE_ID'),
-        'url' => env('TEXTBEE_URL', 'https://api.textbee.dev/api/v1'),
+    'ringcentral' => [
+        'client_id' => env('RINGCENTRAL_CLIENT_ID'),
+        'client_secret' => env('RINGCENTRAL_CLIENT_SECRET'),
+        'jwt' => env('RINGCENTRAL_JWT'),
+        'from' => env('RINGCENTRAL_FROM'),
+        'server_url' => env('RINGCENTRAL_SERVER_URL', 'https://platform.ringcentral.com'),
     ],
 
     'slack' => [
